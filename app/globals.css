@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-body);
-  --font-mono: var(--font-code);
+  --font-mono: var(--font-body);
   --font-heading: var(--font-display-family);
   --font-display: var(--font-display-family);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -40,150 +40,406 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 9999px;
 }
 
 :root {
-  --background: oklch(0.94 0.032 86);
-  --foreground: oklch(0.19 0.029 252);
-  --card: oklch(0.985 0.026 92 / 84%);
-  --card-foreground: oklch(0.19 0.029 252);
-  --popover: oklch(0.985 0.026 92);
-  --popover-foreground: oklch(0.19 0.029 252);
-  --primary: oklch(0.68 0.165 55);
-  --primary-foreground: oklch(0.14 0.029 252);
-  --secondary: oklch(0.86 0.055 184 / 80%);
-  --secondary-foreground: oklch(0.19 0.029 252);
-  --muted: oklch(0.88 0.03 84 / 68%);
-  --muted-foreground: oklch(0.42 0.036 252);
-  --accent: oklch(0.78 0.122 174);
-  --accent-foreground: oklch(0.14 0.029 252);
-  --destructive: oklch(0.58 0.21 31);
-  --border: oklch(0.24 0.035 252 / 18%);
-  --input: oklch(0.24 0.035 252 / 18%);
-  --ring: oklch(0.76 0.14 174);
-  --chart-1: oklch(0.78 0.16 61);
-  --chart-2: oklch(0.77 0.134 178);
-  --chart-3: oklch(0.63 0.16 296);
-  --chart-4: oklch(0.69 0.18 32);
-  --chart-5: oklch(0.72 0.14 148);
-  --radius: 0.85rem;
-  --sidebar: var(--card);
-  --sidebar-foreground: var(--card-foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--secondary);
-  --sidebar-accent-foreground: var(--secondary-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
+  --gold: #f5a623;
+  --gold-light: #ffd07a;
+  --obsidian: #0a0a0a;
+  --ink: #1c1c1c;
+  --cream: #f4f2ee;
+  --white: #fafafa;
+  --warm-grey: #e8e5df;
+  --mid-grey: #9a9590;
+  --background: #f4f2ee;
+  --foreground: #1c1c1c;
+  --card: #fafafa;
+  --card-foreground: #1c1c1c;
+  --popover: #fafafa;
+  --popover-foreground: #1c1c1c;
+  --primary: #f5a623;
+  --primary-foreground: #0a0a0a;
+  --secondary: #e8e5df;
+  --secondary-foreground: #1c1c1c;
+  --muted: #e8e5df;
+  --muted-foreground: #9a9590;
+  --accent: #f5a623;
+  --accent-foreground: #0a0a0a;
+  --destructive: #1c1c1c;
+  --border: rgba(28, 28, 28, 0.1);
+  --input: rgba(28, 28, 28, 0.14);
+  --ring: #f5a623;
+  --chart-1: #f5a623;
+  --chart-2: #1c1c1c;
+  --chart-3: #9a9590;
+  --chart-4: #e8e5df;
+  --chart-5: #fafafa;
+  --radius: 0;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #1c1c1c;
+  --sidebar-primary: #f5a623;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #e8e5df;
+  --sidebar-accent-foreground: #1c1c1c;
+  --sidebar-border: rgba(28, 28, 28, 0.1);
+  --sidebar-ring: #f5a623;
+  --font-display-family: Georgia, "Times New Roman", serif;
 }
 
 .dark {
-  --background: oklch(0.15 0.038 252);
-  --foreground: oklch(0.94 0.034 88);
-  --card: oklch(0.205 0.044 252 / 78%);
-  --card-foreground: oklch(0.94 0.034 88);
-  --popover: oklch(0.18 0.044 252);
-  --popover-foreground: oklch(0.94 0.034 88);
-  --primary: oklch(0.78 0.16 61);
-  --primary-foreground: oklch(0.13 0.035 252);
-  --secondary: oklch(0.25 0.06 244 / 74%);
-  --secondary-foreground: oklch(0.94 0.034 88);
-  --muted: oklch(0.26 0.052 252 / 64%);
-  --muted-foreground: oklch(0.73 0.042 88);
-  --accent: oklch(0.77 0.134 178);
-  --accent-foreground: oklch(0.12 0.03 252);
-  --destructive: oklch(0.68 0.21 31);
-  --border: oklch(0.98 0.02 88 / 14%);
-  --input: oklch(0.98 0.02 88 / 14%);
-  --ring: oklch(0.8 0.15 178);
-  --chart-1: oklch(0.78 0.16 61);
-  --chart-2: oklch(0.77 0.134 178);
-  --chart-3: oklch(0.63 0.16 296);
-  --chart-4: oklch(0.69 0.18 32);
-  --chart-5: oklch(0.72 0.14 148);
-  --sidebar: var(--card);
-  --sidebar-foreground: var(--card-foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--secondary);
-  --sidebar-accent-foreground: var(--secondary-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
+  --background: #f4f2ee;
+  --foreground: #1c1c1c;
+  --card: #fafafa;
+  --card-foreground: #1c1c1c;
+  --popover: #fafafa;
+  --popover-foreground: #1c1c1c;
+  --primary: #f5a623;
+  --primary-foreground: #0a0a0a;
+  --secondary: #e8e5df;
+  --secondary-foreground: #1c1c1c;
+  --muted: #e8e5df;
+  --muted-foreground: #9a9590;
+  --accent: #f5a623;
+  --accent-foreground: #0a0a0a;
+  --destructive: #1c1c1c;
+  --border: rgba(28, 28, 28, 0.1);
+  --input: rgba(28, 28, 28, 0.14);
+  --ring: #f5a623;
+  --chart-1: #f5a623;
+  --chart-2: #1c1c1c;
+  --chart-3: #9a9590;
+  --chart-4: #e8e5df;
+  --chart-5: #fafafa;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #1c1c1c;
+  --sidebar-primary: #f5a623;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #e8e5df;
+  --sidebar-accent-foreground: #1c1c1c;
+  --sidebar-border: rgba(28, 28, 28, 0.1);
+  --sidebar-ring: #f5a623;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+
   html {
     @apply font-sans;
   }
+
+  body {
+    @apply bg-background text-foreground;
+    font-weight: 400;
+  }
 }
 
+[data-slot="card"],
+[data-slot="button"],
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="select-trigger"],
+[data-slot="select-content"],
+[data-slot="alert"],
+.react-flow__node,
+.react-flow__controls-button,
+.react-flow__minimap {
+  border-radius: 0 !important;
+}
+
+[data-slot="badge"] {
+  border-radius: 9999px !important;
+}
+
+/* ============================================================
+   PAGE CANVAS
+   Cream alone, no grid. A single full-width gold hairline
+   threads the top of the page — the only decorative element.
+   ============================================================ */
+
 .planner-bg {
-  background:
-    radial-gradient(circle at 12% 8%, oklch(0.78 0.16 61 / 22%), transparent 28rem),
-    radial-gradient(circle at 82% 18%, oklch(0.77 0.134 178 / 18%), transparent 25rem),
-    radial-gradient(circle at 65% 92%, oklch(0.63 0.16 296 / 16%), transparent 30rem),
-    linear-gradient(135deg, oklch(0.15 0.038 252), oklch(0.11 0.03 252));
+  background: #f4f2ee;
   position: relative;
 }
 
 .planner-bg::before {
-  background-image:
-    linear-gradient(oklch(0.98 0.02 88 / 8%) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(0.98 0.02 88 / 8%) 1px, transparent 1px);
-  background-size: 44px 44px;
+  background: linear-gradient(
+    90deg,
+    #f5a623 0%,
+    rgba(245, 166, 35, 0.6) 30%,
+    rgba(245, 166, 35, 0) 100%
+  );
   content: "";
-  inset: 0;
-  mask-image: linear-gradient(to bottom, black, transparent 82%);
+  height: 2px;
+  left: 0;
   pointer-events: none;
   position: absolute;
+  right: 0;
+  top: 0;
 }
 
-.glass-panel,
-.paper-card {
-  backdrop-filter: blur(22px);
-  border-color: var(--border);
+.masthead {
+  border-bottom: 1px solid rgba(28, 28, 28, 0.08);
+  padding-bottom: 36px;
+}
+
+/* ============================================================
+   PAPER SURFACES
+   Hero gets the deepest contact-shadow (the strategy panel
+   has weight). Section cards get a hairline border + a near-
+   invisible drop. Memo cards sit on Cream without lift.
+   ============================================================ */
+
+.hero-panel {
+  background: #0a0a0a;
+  border: 1px solid #0a0a0a;
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 12%),
-    0 24px 80px oklch(0 0 0 / 28%);
-}
-
-.glass-panel {
-  background: linear-gradient(145deg, oklch(0.22 0.052 252 / 86%), oklch(0.17 0.04 252 / 72%));
+    0 1px 0 rgba(28, 28, 28, 0.04),
+    0 24px 60px -20px rgba(10, 10, 10, 0.35);
+  color: #fafafa;
 }
 
 .paper-card {
-  background: var(--card);
+  background: #fafafa;
+  border: 1px solid rgba(28, 28, 28, 0.08);
+  box-shadow:
+    0 1px 0 rgba(28, 28, 28, 0.03),
+    0 12px 32px -16px rgba(10, 10, 10, 0.08);
+  color: #1c1c1c;
 }
 
-.blueprint-surface {
-  background:
-    linear-gradient(oklch(0.77 0.134 178 / 9%) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(0.77 0.134 178 / 9%) 1px, transparent 1px),
-    linear-gradient(145deg, oklch(0.18 0.044 252 / 78%), oklch(0.12 0.032 252 / 78%));
-  background-size: 28px 28px, 28px 28px, auto;
+.section-card {
+  /* Spacing inherited; no extra shadow needed. */
 }
+
+.form-surface {
+  background: #fafafa;
+  border: 1px solid rgba(28, 28, 28, 0.1);
+  color: #1c1c1c;
+}
+
+.memo-surface {
+  background:
+    linear-gradient(rgba(28, 28, 28, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 28, 28, 0.04) 1px, transparent 1px), #f4f2ee;
+  background-size:
+    32px 32px,
+    32px 32px,
+    auto;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
 
 .command-strip {
-  background: linear-gradient(100deg, var(--primary), var(--accent), oklch(0.63 0.16 296));
+  background: #f5a623;
+  color: rgba(0, 0, 0, 0.72);
 }
 
+.command-strip:hover {
+  background: #ffd07a;
+}
+
+.quiet-button {
+  background: #1c1c1c;
+  color: #fafafa;
+}
+
+/* ============================================================
+   LABELS, NUMERALS, ANCHORS
+   .micro-label    — plain uppercase label
+   .section-anchor — micro-label with a 28px gold rule prefix
+   .numeral-eyebrow — Georgia italic Roman numeral, mid-grey
+   ============================================================ */
+
 .micro-label {
-  font-family: var(--font-code);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  align-items: center;
+  color: #9a9590;
+  display: inline-flex;
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  line-height: 1;
   text-transform: uppercase;
+}
+
+.section-anchor {
+  align-items: center;
+  color: #9a9590;
+  display: inline-flex;
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.section-anchor::before {
+  background: #f5a623;
+  content: "";
+  display: inline-block;
+  height: 1px;
+  margin-right: 14px;
+  width: 28px;
+}
+
+.section-label::before {
+  background: #f5a623;
+  content: "";
+  display: inline-block;
+  height: 1px;
+  margin-right: 14px;
+  width: 28px;
+}
+
+.numeral-eyebrow {
+  color: #9a9590;
+  font-family: var(--font-display-family);
+  font-size: 0.875rem;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+/* ============================================================
+   PRIORITY CHIPS
+   The only place in the UI where chip color carries meaning.
+   P1 = Gold on Obsidian text. P2 = Ink. P3+ = Warm Grey.
+   ============================================================ */
+
+.priority-chip {
+  align-items: center;
+  border: 1px solid transparent;
+  display: inline-flex;
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  font-weight: 500;
+  height: 22px;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  padding: 0 10px;
+  text-transform: uppercase;
+}
+
+.priority-chip[data-priority="P1"] {
+  background: #f5a623;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.priority-chip[data-priority="P2"] {
+  background: #1c1c1c;
+  color: #fafafa;
+}
+
+.priority-chip[data-priority="P3"],
+.priority-chip[data-priority="P4"],
+.priority-chip[data-priority="P5"] {
+  background: #e8e5df;
+  color: #1c1c1c;
+}
+
+/* ============================================================
+   ID CHIPS
+   Monospace pill for FR-001, SC-001, route paths, entity ids.
+   ============================================================ */
+
+.id-chip {
+  background: #f4f2ee;
+  border: 1px solid rgba(28, 28, 28, 0.08);
+  color: #1c1c1c;
+  display: inline-block;
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   PULL-QUOTE
+   Gold left-rule + Georgia italic. Used for editorial moments
+   like "Why this priority" — reinforces voice without noise.
+   ============================================================ */
+
+.pull-quote {
+  border-left: 2px solid #f5a623;
+  color: #1c1c1c;
+  font-family: var(--font-display-family);
+  font-size: 0.9375rem;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.7;
+  padding: 4px 0 4px 18px;
+}
+
+/* ============================================================
+   HAIRLINES & DOSSIER EMPTY STATE
+   ============================================================ */
+
+.hairline {
+  background: rgba(28, 28, 28, 0.08);
+  display: block;
+  height: 1px;
+  width: 100%;
+}
+
+.hairline-gold {
+  background: linear-gradient(90deg, #f5a623 0%, rgba(245, 166, 35, 0) 100%);
+  display: block;
+  height: 1px;
+  width: 100%;
+}
+
+.dossier-empty {
+  background: #fafafa;
+  border: 1px solid rgba(28, 28, 28, 0.08);
+  box-shadow:
+    0 1px 0 rgba(28, 28, 28, 0.03),
+    0 12px 32px -16px rgba(10, 10, 10, 0.08);
+}
+
+/* ============================================================
+   LOGO & METADATA
+   ============================================================ */
+
+.rautaki-logo {
+  color: inherit;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.25rem;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.rautaki-logo .accent-letter,
+.gold-emphasis {
+  color: #f5a623;
+}
+
+.gold-emphasis {
+  font-style: italic;
+}
+
+.body-copy-on-dark {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dark-meta-badge {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: rgba(255, 255, 255, 0.65);
 }
