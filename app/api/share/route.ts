@@ -16,7 +16,6 @@ const requestSchema = z.object({
   brief: projectBriefSchema.extend({
     starterPrompt: z.string(),
     mode: z.enum(["plain", "specKit"]),
-    tutorial: z.boolean(),
   }),
 });
 

@@ -16,7 +16,6 @@ import { checkRateLimit } from "@/lib/rate-limit";
 const requestSchema = z.object({
   idea: z.string().trim().min(10).max(2000),
   mode: z.enum(["plain", "specKit"]).default("plain"),
-  tutorial: z.boolean().default(false),
   clarifierAnswers: z
     .array(
       z.object({
@@ -74,12 +73,12 @@ export async function POST(request: Request) {
   }
 
   const modelId = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
-  const { idea, mode, tutorial, clarifierAnswers } = parsed.data;
+  const { idea, mode, clarifierAnswers } = parsed.data;
 
   const result = streamText({
     model: getOpenRouterModel(apiKey, modelId),
     system: PLANNER_SYSTEM_PROMPT,
-    prompt: buildPlannerPrompt(idea, { mode, tutorial, clarifierAnswers }),
+    prompt: buildPlannerPrompt(idea, { mode, clarifierAnswers }),
     experimental_output: Output.object({
       name: "ProjectBrief",
       description: "An editable project brief shaped by the user's modes.",
@@ -122,7 +121,7 @@ export async function POST(request: Request) {
 
         send({
           type: "done",
-          brief: { ...finalBrief, mode, tutorial, starterPrompt },
+          brief: { ...finalBrief, mode, starterPrompt },
           model: modelId,
           starterPromptSource: source,
         });

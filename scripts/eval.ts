@@ -78,7 +78,7 @@ async function fetchBrief(idea: string): Promise<{
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idea, mode: "specKit", tutorial: false }),
+    body: JSON.stringify({ idea, mode: "specKit" }),
   });
 
   if (!response.ok || !response.body) {

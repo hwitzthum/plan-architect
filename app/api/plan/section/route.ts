@@ -21,7 +21,6 @@ const requestSchema = z.object({
   section: z.enum(SECTION_NAMES as [SectionName, ...SectionName[]]),
   constraint: z.string().trim().max(500).optional(),
   mode: z.enum(["plain", "specKit"]).default("plain"),
-  tutorial: z.boolean().default(false),
 });
 
 function getClientKey(request: Request) {
@@ -64,7 +63,7 @@ export async function POST(request: Request) {
   }
 
   const modelId = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
-  const { brief, section, constraint, mode, tutorial } = parsed.data;
+  const { brief, section, constraint, mode } = parsed.data;
 
   const sectionSchema = sectionSchemas[section];
   const sectionLabel = SECTION_LABELS[section];
@@ -77,9 +76,7 @@ ${JSON.stringify(brief, null, 2)}
 Regenerate ONLY the "${sectionLabel}" section.
 ${constraint ? `Apply this extra constraint: ${constraint}` : ""}
 
-Modes for this brief:
-- spec-kit mode: ${mode === "specKit" ? "ON" : "OFF"}
-- tutorial mode: ${tutorial ? "ON" : "OFF"}
+spec-kit mode: ${mode === "specKit" ? "ON" : "OFF"}
 
 For the data model section, every relationship's sourceEntityId and targetEntityId must match a generated entity id. Use kebab-case ids.
 

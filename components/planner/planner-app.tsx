@@ -51,7 +51,6 @@ export function PlannerApp() {
   const [model, setModel] = useState<string | null>(null);
   const [briefId, setBriefId] = useState<string | null>(null);
   const [mode, setMode] = useState<BriefMode>("plain");
-  const [tutorial, setTutorial] = useState<boolean>(false);
   const [clarifierQuestions, setClarifierQuestions] = useState<
     ClarifierQuestion[] | null
   >(null);
@@ -87,7 +86,6 @@ export function PlannerApp() {
           setModel(payload.model);
           setBrief(payload.brief);
           setMode(payload.brief.mode ?? "plain");
-          setTutorial(Boolean(payload.brief.tutorial));
           clearCurrentHash();
         } catch {
           if (!cancelled) {
@@ -109,7 +107,6 @@ export function PlannerApp() {
       setModel(last.model);
       setBrief(last.brief);
       setMode(last.brief.mode ?? "plain");
-      setTutorial(Boolean(last.brief.tutorial));
     }
   }, []);
 
@@ -198,7 +195,6 @@ export function PlannerApp() {
         body: JSON.stringify({
           idea: trimmedIdea,
           mode,
-          tutorial,
           clarifierAnswers: formatted.length > 0 ? formatted : undefined,
         }),
       });
@@ -290,15 +286,9 @@ export function PlannerApp() {
 
   async function regenerateStarterPrompt() {
     if (!brief) return;
-    const {
-      starterPrompt: _omit,
-      mode: _mode,
-      tutorial: _tutorial,
-      ...payload
-    } = brief;
+    const { starterPrompt: _omit, mode: _mode, ...payload } = brief;
     void _omit;
     void _mode;
-    void _tutorial;
     try {
       const response = await fetch("/api/starter-prompt", {
         method: "POST",
@@ -330,12 +320,10 @@ export function PlannerApp() {
     const {
       starterPrompt: _starterPrompt,
       mode: _bMode,
-      tutorial: _bTutorial,
       ...briefPayload
     } = brief;
     void _starterPrompt;
     void _bMode;
-    void _bTutorial;
 
     try {
       const response = await fetch("/api/plan/section", {
@@ -346,7 +334,6 @@ export function PlannerApp() {
           section,
           constraint,
           mode,
-          tutorial,
         }),
       });
       const data = (await response.json()) as {
@@ -404,10 +391,8 @@ export function PlannerApp() {
 
         <ModeToggles
           mode={mode}
-          tutorial={tutorial}
           disabled={isLoading || clarifierLoading}
           onModeChange={setMode}
-          onTutorialChange={setTutorial}
         />
 
         {clarifierQuestions ? (

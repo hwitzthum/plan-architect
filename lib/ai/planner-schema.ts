@@ -151,5 +151,4 @@ export type BriefMode = "plain" | "specKit";
 export type ProjectBriefWithStarter = ProjectBrief & {
   starterPrompt: string;
   mode: BriefMode;
-  tutorial: boolean;
 };
