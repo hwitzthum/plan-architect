@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plan Architect
 
-## Getting Started
+A lightweight AI Project Planner tutorial app. Enter a rough app idea and generate an editable project brief with app summary, target users, features, tech stack, routes, data model, build phases, risks, and a copyable starter prompt for a coding agent.
 
-First, run the development server:
+## Features
+
+- All-at-once AI brief generation through the AI SDK and OpenRouter.
+- Editable project summary, users, features, tech stack, routes, build phases, and risks.
+- Editable data-model entities, fields, and relationships.
+- React Flow visualization of entity relationships.
+- Copyable and editable coding-agent starter prompt.
+- Dark-first shadcn/ui planning desk interface.
+- Small tutorial scope: no auth, no database, no payments.
+
+## Stack
+
+- Next.js App Router
+- React
+- Tailwind CSS v4
+- shadcn/ui
+- AI SDK
+- OpenRouter provider
+- React Flow via `@xyflow/react`
+- Zod for structured AI output validation
+
+## Environment
+
+Create `.env.local`:
+
+```bash
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_MODEL=anthropic/claude-sonnet-4.6
+```
+
+`OPENROUTER_MODEL` is optional. The app defaults to `anthropic/claude-sonnet-4.6`.
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Enter a rough app idea in the prompt panel.
+2. Click `Generate brief`.
+3. Edit the generated brief sections.
+4. Edit data-model entities, fields, and relationships.
+5. Review the React Flow entity map.
+6. Copy the final starter prompt into a coding agent.
 
-## Learn More
+## API
 
-To learn more about Next.js, take a look at the following resources:
+`POST /api/plan`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Request:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```json
+{
+  "idea": "A rough app idea"
+}
+```
 
-## Deploy on Vercel
+Response:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{
+  "brief": {
+    "appSummary": "...",
+    "targetUsers": [],
+    "coreFeatures": [],
+    "recommendedTechStack": [],
+    "pagesRoutes": [],
+    "dataModel": {
+      "entities": [],
+      "relationships": []
+    },
+    "buildPhases": [],
+    "risksEdgeCases": [],
+    "starterPrompt": "..."
+  },
+  "model": "anthropic/claude-sonnet-4.6"
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The API validates input, applies a simple in-memory rate limit, calls OpenRouter, and returns schema-validated structured output.
+
+## Scripts
+
+```bash
+npm run dev
+npm run lint
+npm run build
+```
