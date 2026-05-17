@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { ProjectBriefWithStarter } from "@/lib/ai/planner-schema";
+import { linesToList } from "@/lib/utils";
 
 import { BriefSectionCard } from "./brief-section-card";
 import { RegenerateButton } from "./regenerate-button";
@@ -16,13 +17,6 @@ type SectionProps = {
   onChange: (brief: ProjectBriefWithStarter) => void;
   onRegenerate?: (constraint: string | undefined) => Promise<void>;
 };
-
-function linesToList(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
 
 type ListTextareaProps = {
   label: string;
@@ -37,7 +31,7 @@ function ListTextarea({ label, values, onChange }: ListTextareaProps) {
       <Textarea
         value={values.join("\n")}
         onChange={(event) => onChange(linesToList(event.target.value))}
-        className="min-h-36 bg-muted leading-7 shadow-inner"
+        className="min-h-36 bg-muted leading-7"
       />
     </label>
   );
@@ -59,7 +53,7 @@ export function ProjectBriefSection({ brief, onChange }: SectionProps) {
             onChange={(event) =>
               onChange({ ...brief, appSummary: event.target.value })
             }
-            className="min-h-32 bg-muted leading-7 shadow-inner"
+            className="min-h-32 bg-muted leading-7"
           />
         </label>
         <div className="grid gap-6 md:grid-cols-3">
@@ -104,7 +98,7 @@ export function PagesRoutesSection({
       <div className="flex flex-col gap-4">
         {brief.pagesRoutes.map((route, index) => (
           <div
-            className="border border-border bg-muted p-4 shadow-inner"
+            className="border border-border bg-muted p-4"
             key={`${route.path}-${index}`}
           >
             <div className="grid gap-4 md:grid-cols-[0.45fr_1fr_auto]">
@@ -194,7 +188,7 @@ export function BuildPhasesSection({
       <div className="flex flex-col gap-5">
         {brief.buildPhases.map((phase, index) => (
           <div
-            className="flex flex-col gap-4 border border-border bg-muted p-4 shadow-inner"
+            className="flex flex-col gap-4 border border-border bg-muted p-4"
             key={`${phase.name}-${index}`}
           >
             <div className="flex gap-3">
@@ -279,7 +273,7 @@ export function RisksSection({ brief, onChange, onRegenerate }: SectionProps) {
       <div className="flex flex-col gap-4">
         {brief.risksEdgeCases.map((risk, index) => (
           <div
-            className="grid gap-4 border border-border bg-muted p-4 shadow-inner md:grid-cols-[0.6fr_1fr_auto]"
+            className="grid gap-4 border border-border bg-muted p-4 md:grid-cols-[0.6fr_1fr_auto]"
             key={`${risk.title}-${index}`}
           >
             <Input

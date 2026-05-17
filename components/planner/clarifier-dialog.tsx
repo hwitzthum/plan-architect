@@ -6,7 +6,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import type {
   ClarifierAnswers,
   ClarifierQuestion,
@@ -87,10 +86,7 @@ export function ClarifierDialog({
                     variant={active ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleOption(question.id, option)}
-                    className={cn(
-                      "h-8 px-3 text-sm",
-                      active ? "command-strip text-primary-foreground" : "",
-                    )}
+                    className="px-3 text-sm"
                   >
                     {option}
                   </Button>
@@ -106,12 +102,7 @@ export function ClarifierDialog({
                   }
                   size="sm"
                   onClick={() => handleOption(question.id, FREE_TEXT_SENTINEL)}
-                  className={cn(
-                    "h-8 px-3 text-sm",
-                    picks[question.id] === FREE_TEXT_SENTINEL
-                      ? "command-strip text-primary-foreground"
-                      : "",
-                  )}
+                  className="px-3 text-sm"
                 >
                   Other…
                 </Button>
@@ -125,7 +116,7 @@ export function ClarifierDialog({
                     handleFreeText(question.id, event.target.value)
                   }
                   placeholder="Describe your answer…"
-                  className="min-h-20 bg-muted text-sm leading-6 shadow-inner"
+                  className="min-h-20 bg-muted text-sm leading-6"
                 />
               </div>
             ) : null}
@@ -142,12 +133,7 @@ export function ClarifierDialog({
             <SkipForwardIcon data-icon="inline-start" />
             Skip questions
           </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="command-strip text-primary-foreground"
-          >
+          <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
             <ArrowRightIcon data-icon="inline-start" />
             {isSubmitting ? "Generating" : "Generate brief"}
           </Button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { BriefMode } from "@/lib/ai/planner-schema";
 
 type ModeTogglesProps = {
@@ -19,7 +18,7 @@ export function ModeToggles({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="flex flex-col gap-1 border border-border bg-muted px-4 py-3 shadow-inner">
+      <div className="flex flex-col gap-1 border border-border bg-muted px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <span className="micro-label">Spec-kit mode</span>
           <Button
@@ -28,10 +27,7 @@ export function ModeToggles({
             variant={active ? "default" : "outline"}
             disabled={disabled}
             onClick={() => onModeChange(active ? "plain" : "specKit")}
-            className={cn(
-              "micro-label h-8 px-3",
-              active ? "command-strip text-primary-foreground" : undefined,
-            )}
+            className="micro-label px-3"
           >
             {active ? "On" : "Off"}
           </Button>

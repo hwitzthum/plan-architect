@@ -153,11 +153,9 @@ Anyone opening that URL — incognito, different browser, different machine — 
 
 **Trade-offs to know:**
 
-- **In-memory store.** Shares live until the server restarts. Restart the dev server and old `#s=<id>` URLs return a "share is no longer available" error. For production durability, swap `lib/persistence/share-store.ts` for Vercel KV, Redis, or a tiny database.
-- **No authentication.** Anyone with the id can read the share. The id is 8 random base36 characters (~41 bits) — guessable in theory at scale, fine in practice for an unauthenticated dev tool.
-- **Size-bounded.** The store keeps at most 500 shares and drops the oldest when full.
-
-If sharing becomes a real workflow rather than a convenience, those are the three things to change.
+- **In-memory store.** Shares live until the server restarts. Restart the dev server and old `#s=<id>` URLs return a "share is no longer available" error. The store interface in `lib/persistence/share-store.ts` is the single swap-in point for Vercel KV, Upstash Redis, or a small database — the rest of the codebase imports through it.
+- **Single-user deployment assumed.** This codebase is meant to be deployed behind Vercel Password Protection (see "Deployment & Security" below). Without that, anyone with the URL can drain your OpenRouter key.
+- **Cryptographic IDs.** Share ids are `crypto.randomUUID()` (128-bit). The store keeps at most 500 shares and expires entries after 30 days.
 
 ### Local persistence
 
@@ -178,7 +176,33 @@ There is no UI for managing multiple saved briefs in this version, but the data 
 | `POST /api/share`          | Stores a brief in the in-memory share store; returns a short id. |
 | `GET  /api/share?id=<id>`  | Returns the stored brief for `#s=<id>` hydration.                |
 
-All endpoints share an in-memory rate limiter keyed by client IP. The limiter is per-process — on Vercel cold starts reset it. Treat it as defence-in-depth, not as a security boundary.
+All endpoints share an in-memory rate limiter keyed by client IP (`x-vercel-forwarded-for`, falling back to `x-real-ip`). The limiter is per-process — on Vercel cold starts reset it. Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
+
+All POST endpoints reject cross-origin requests via an `Origin` header check.
+
+## Deployment & Security
+
+This app is designed for a **single-user deployment behind Vercel Password Protection**. The threat model assumes:
+
+1. **The deployment URL is protected** — Vercel Password Protection (Pro/Enterprise) or your equivalent SSO/proxy gate sits in front of every route, including `/api/*`. Without this gate, the AI endpoints will silently bill your OpenRouter key for anyone who finds the URL.
+2. **The OpenRouter key never leaves the server.** It is read only from `process.env.OPENROUTER_API_KEY` inside route handlers. There is no `NEXT_PUBLIC_*` exposure.
+3. **Briefs are not multi-tenant.** Anyone past the gate can read any share-link payload.
+
+If you instead want a public deployment, replace Password Protection with: real auth (NextAuth / Clerk), per-user scoping on the share store, and Turnstile/hCaptcha on AI endpoints. The current code is not hardened for that scenario.
+
+### Built-in hardening
+
+The codebase ships with the following protections:
+
+- **Security headers** in `next.config.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
+- **Same-origin check** on every POST route.
+- **Rate limiting** per client IP, with a separate budget on `GET /api/share` to prevent enumeration.
+- **`crypto.randomUUID()` share ids** (128 bits) with a 30-day TTL.
+- **Input bounds** via Zod `.max()` on every brief field; the section-regenerate route rejects briefs > 64 KB JSON.
+- **AbortSignal forwarding** to OpenRouter — when a client disconnects, the upstream call cancels.
+- **`maxOutputTokens` cap** on every AI call (default 8000, override with `OPENROUTER_MAX_OUTPUT_TOKENS`).
+- **XML-delimited user input** in prompts to reduce stored prompt-injection.
+- **Structured error logging** — client responses are generic; details are JSON-logged server-side keyed by `requestId`.
 
 ## Eval
 

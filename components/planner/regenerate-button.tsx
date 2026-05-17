@@ -77,7 +77,6 @@ export function RegenerateButton({
           size="sm"
           onClick={() => submit(true)}
           disabled={busy}
-          className="command-strip text-primary-foreground"
         >
           {busy ? (
             <LoaderCircleIcon

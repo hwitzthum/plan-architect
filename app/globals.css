@@ -2,13 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-body);
-  --font-mono: var(--font-body);
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --font-heading: var(--font-display-family);
   --font-display: var(--font-display-family);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -46,7 +45,7 @@
   --radius-xl: 0;
   --radius-2xl: 0;
   --radius-3xl: 0;
-  --radius-4xl: 9999px;
+  --radius-4xl: 0;
 }
 
 :root {
@@ -91,47 +90,10 @@
   --sidebar-border: rgba(28, 28, 28, 0.1);
   --sidebar-ring: #f5a623;
   --font-display-family: Georgia, "Times New Roman", serif;
-}
-
-.dark {
-  --background: #f4f2ee;
-  --foreground: #1c1c1c;
-  --card: #fafafa;
-  --card-foreground: #1c1c1c;
-  --popover: #fafafa;
-  --popover-foreground: #1c1c1c;
-  --primary: #f5a623;
-  --primary-foreground: #0a0a0a;
-  --secondary: #e8e5df;
-  --secondary-foreground: #1c1c1c;
-  --muted: #e8e5df;
-  --muted-foreground: #9a9590;
-  --accent: #f5a623;
-  --accent-foreground: #0a0a0a;
-  --destructive: #1c1c1c;
-  --border: rgba(28, 28, 28, 0.1);
-  --input: rgba(28, 28, 28, 0.14);
-  --ring: #f5a623;
-  --chart-1: #f5a623;
-  --chart-2: #1c1c1c;
-  --chart-3: #9a9590;
-  --chart-4: #e8e5df;
-  --chart-5: #fafafa;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #1c1c1c;
-  --sidebar-primary: #f5a623;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-accent: #e8e5df;
-  --sidebar-accent-foreground: #1c1c1c;
-  --sidebar-border: rgba(28, 28, 28, 0.1);
-  --sidebar-ring: #f5a623;
+  --container-dossier: 1420px;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
   html {
     @apply font-sans;
   }
@@ -140,23 +102,18 @@
     @apply bg-background text-foreground;
     font-weight: 400;
   }
-}
 
-[data-slot="card"],
-[data-slot="button"],
-[data-slot="input"],
-[data-slot="textarea"],
-[data-slot="select-trigger"],
-[data-slot="select-content"],
-[data-slot="alert"],
-.react-flow__node,
-.react-flow__controls-button,
-.react-flow__minimap {
-  border-radius: 0 !important;
-}
+  /* Visible Gold focus ring on interactive controls only. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 
-[data-slot="badge"] {
-  border-radius: 9999px !important;
+  button:focus:not(:focus-visible),
+  [role="button"]:focus:not(:focus-visible),
+  a:focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 
 /* ============================================================
@@ -243,10 +200,17 @@
 .command-strip {
   background: #f5a623;
   color: rgba(0, 0, 0, 0.72);
+  transition: background-color 150ms ease-out;
 }
 
 .command-strip:hover {
   background: #ffd07a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-strip {
+    transition: none;
+  }
 }
 
 .quiet-button {

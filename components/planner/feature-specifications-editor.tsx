@@ -5,7 +5,7 @@ import { PlusIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, linesToList } from "@/lib/utils";
 import type {
   FeatureSpecification,
   ProjectBriefWithStarter,
@@ -23,13 +23,6 @@ type FeatureSpecificationsEditorProps = {
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 type Feature = FeatureSpecification;
-
-function linesToList(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
 
 function nextPriority(existing: Feature[]) {
   for (let i = 1; i <= 5; i += 1) {
@@ -237,7 +230,7 @@ function FeatureCard({
   return (
     <article className="flex flex-col gap-7 border border-border bg-card p-6 md:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-1 flex-col gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <span className="numeral-eyebrow">{ordinal}.</span>
             <span className="priority-chip" data-priority={priorityToken}>
@@ -252,9 +245,9 @@ function FeatureCard({
             }
             aria-label="Feature name"
             className={cn(
-              "border-0 border-b border-border bg-transparent px-0 py-2 shadow-none",
-              "font-display text-2xl font-normal tracking-[-0.02em]",
-              "focus-visible:ring-0 focus-visible:border-primary",
+              "h-auto w-full min-w-0 border-0 border-b border-border bg-transparent px-0 py-2",
+              "font-display text-xl font-normal tracking-[-0.02em] leading-tight md:text-2xl",
+              "focus-visible:border-primary focus-visible:ring-0",
             )}
           />
         </div>
@@ -283,7 +276,7 @@ function FeatureCard({
             onChange={(event) =>
               onChange({ ...feature, userStory: event.target.value })
             }
-            className="min-h-28 bg-muted leading-7 shadow-inner"
+            className="min-h-28 bg-muted leading-7"
           />
         </label>
 
@@ -310,7 +303,7 @@ function FeatureCard({
           onChange={(event) =>
             onChange({ ...feature, independentTest: event.target.value })
           }
-          className="min-h-20 bg-muted leading-7 shadow-inner"
+          className="min-h-20 bg-muted leading-7"
         />
       </label>
 
@@ -376,7 +369,7 @@ function FeatureCard({
           onChange={(event) =>
             onChange({ ...feature, edgeCases: linesToList(event.target.value) })
           }
-          className="min-h-24 bg-muted leading-7 shadow-inner"
+          className="min-h-24 bg-muted leading-7"
           aria-label="Edge cases, one per line"
         />
       </section>
@@ -515,7 +508,7 @@ function FeatureCard({
               assumptions: linesToList(event.target.value),
             })
           }
-          className="min-h-20 bg-muted leading-7 shadow-inner"
+          className="min-h-20 bg-muted leading-7"
           aria-label="Assumptions, one per line"
         />
       </section>

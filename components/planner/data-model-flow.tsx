@@ -7,8 +7,8 @@ import {
   type Edge,
   type Node,
 } from "@xyflow/react";
+import { memo, useMemo } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -22,59 +22,89 @@ type DataModelFlowProps = {
   dataModel: ProjectBrief["dataModel"];
 };
 
-export function DataModelFlow({ dataModel }: DataModelFlowProps) {
-  const nodes: Node[] = dataModel.entities.map((entity, index) => ({
-    id: entity.id,
-    position: { x: (index % 2) * 310, y: Math.floor(index / 2) * 190 },
-    data: {
-      label: (
-        <div className="flex min-w-52 flex-col gap-2 text-left">
-          <div className="font-display text-base font-normal tracking-[-0.015em]">
-            {entity.name}
-          </div>
-          <div className="text-xs leading-5 text-muted-foreground">
-            {entity.description}
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {entity.fields.slice(0, 5).map((field) => (
-              <Badge
-                variant="secondary"
-                className="font-mono text-[10px]"
-                key={field}
-              >
-                {field}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      ),
-    },
-    style: {
-      background: "var(--card)",
-      border: "1px solid var(--border)",
-      borderRadius: 0,
-      color: "var(--card-foreground)",
-      padding: 12,
-      width: 250,
-    },
-  }));
+const NODE_STYLE = {
+  background: "var(--card)",
+  border: "1px solid var(--border)",
+  borderRadius: 0,
+  color: "var(--card-foreground)",
+  padding: 0,
+  width: 250,
+} as const;
 
-  const entityIds = new Set(dataModel.entities.map((entity) => entity.id));
-  const edges: Edge[] = dataModel.relationships
-    .filter(
-      (relationship) =>
-        entityIds.has(relationship.sourceEntityId) &&
-        entityIds.has(relationship.targetEntityId),
-    )
-    .map((relationship) => ({
-      id: relationship.id,
-      source: relationship.sourceEntityId,
-      target: relationship.targetEntityId,
-      label: relationship.label,
-      animated: false,
-      style: { stroke: "var(--accent)", strokeWidth: 2 },
-      labelStyle: { fill: "var(--foreground)", fontSize: 12, fontWeight: 500 },
+const EDGE_STYLE = { stroke: "var(--accent)", strokeWidth: 2 } as const;
+const EDGE_LABEL_STYLE = {
+  fill: "var(--foreground)",
+  fontSize: 12,
+  fontWeight: 500,
+} as const;
+
+function EntityNodeLabel({
+  name,
+  description,
+  fields,
+}: {
+  name: string;
+  description: string;
+  fields: string[];
+}) {
+  return (
+    <div className="flex min-w-52 flex-col text-left">
+      <div className="border-b border-border px-3 py-2">
+        <span className="micro-label">{name}</span>
+      </div>
+      {description ? (
+        <p className="px-3 pt-2 text-xs leading-5 text-muted-foreground">
+          {description}
+        </p>
+      ) : null}
+      <ul className="flex flex-col px-3 py-2 font-mono text-[11px] leading-5 text-foreground/85">
+        {fields.slice(0, 5).map((field) => (
+          <li key={field}>{field}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DataModelFlowImpl({ dataModel }: DataModelFlowProps) {
+  const { nodes, edges } = useMemo(() => {
+    const computedNodes: Node[] = dataModel.entities.map((entity, index) => ({
+      id: entity.id,
+      position: { x: (index % 2) * 310, y: Math.floor(index / 2) * 190 },
+      data: {
+        label: (
+          <EntityNodeLabel
+            name={entity.name}
+            description={entity.description}
+            fields={entity.fields}
+          />
+        ),
+      },
+      style: NODE_STYLE,
     }));
+
+    const entityIds = new Set(dataModel.entities.map((entity) => entity.id));
+    // Defensive guard: drop dangling relationships. Server-side
+    // applySectionPatch performs the same filter — this is a render-time
+    // safety net for ids edited inline before the section is regenerated.
+    const computedEdges: Edge[] = dataModel.relationships
+      .filter(
+        (relationship) =>
+          entityIds.has(relationship.sourceEntityId) &&
+          entityIds.has(relationship.targetEntityId),
+      )
+      .map((relationship) => ({
+        id: relationship.id,
+        source: relationship.sourceEntityId,
+        target: relationship.targetEntityId,
+        label: relationship.label,
+        animated: false,
+        style: EDGE_STYLE,
+        labelStyle: EDGE_LABEL_STYLE,
+      }));
+
+    return { nodes: computedNodes, edges: computedEdges };
+  }, [dataModel.entities, dataModel.relationships]);
 
   return (
     <Card className="paper-card overflow-hidden">
@@ -83,10 +113,8 @@ export function DataModelFlow({ dataModel }: DataModelFlowProps) {
           <span className="numeral-eyebrow">IV.</span>
           <span className="section-anchor">Entity map</span>
         </div>
-        <CardTitle className="font-display text-2xl font-normal tracking-[-0.02em]">
-          Data Model
-        </CardTitle>
-        <CardDescription className="leading-7">
+        <CardTitle>Data Model</CardTitle>
+        <CardDescription>
           React Flow visualisation generated from the editable data model.
         </CardDescription>
       </CardHeader>
@@ -119,3 +147,5 @@ export function DataModelFlow({ dataModel }: DataModelFlowProps) {
     </Card>
   );
 }
+
+export const DataModelFlow = memo(DataModelFlowImpl);

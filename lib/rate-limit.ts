@@ -1,3 +1,9 @@
+// In-process rate limiter. Counters are held in a module-level Map and reset
+// on every cold start. This is acceptable for a single-user deployment behind
+// Vercel Password Protection; for a multi-user public deployment, swap the
+// `buckets` store for a durable KV (Vercel KV, Upstash Redis) with the same
+// `checkRateLimit` signature so callers do not need to change.
+
 type RateLimitOptions = {
   limit: number;
   windowMs: number;
@@ -8,16 +14,30 @@ type RateLimitEntry = {
   resetAt: number;
 };
 
-const buckets = new Map<string, RateLimitEntry>();
+type GlobalWithBuckets = typeof globalThis & {
+  __planArchitectRateBuckets?: Map<string, RateLimitEntry>;
+};
+
+function buckets(): Map<string, RateLimitEntry> {
+  const g = globalThis as GlobalWithBuckets;
+  if (!g.__planArchitectRateBuckets) {
+    g.__planArchitectRateBuckets = new Map();
+  }
+  return g.__planArchitectRateBuckets;
+}
 
 export function checkRateLimit(key: string, options: RateLimitOptions) {
   const now = Date.now();
-  const current = buckets.get(key);
+  const store = buckets();
+  const current = store.get(key);
 
   if (!current || current.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + options.windowMs });
-
-    return { allowed: true, remaining: options.limit - 1, resetAt: now + options.windowMs };
+    store.set(key, { count: 1, resetAt: now + options.windowMs });
+    return {
+      allowed: true,
+      remaining: options.limit - 1,
+      resetAt: now + options.windowMs,
+    };
   }
 
   if (current.count >= options.limit) {
@@ -25,7 +45,11 @@ export function checkRateLimit(key: string, options: RateLimitOptions) {
   }
 
   current.count += 1;
-  buckets.set(key, current);
+  store.set(key, current);
 
-  return { allowed: true, remaining: options.limit - current.count, resetAt: current.resetAt };
+  return {
+    allowed: true,
+    remaining: options.limit - current.count,
+    resetAt: current.resetAt,
+  };
 }

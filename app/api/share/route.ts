@@ -9,25 +9,24 @@ import {
   type SharedBrief,
 } from "@/lib/persistence/share-store";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
 const requestSchema = z.object({
   idea: z.string().trim().min(1).max(4000),
-  model: z.string().nullable(),
+  model: z.string().max(200).nullable(),
   brief: projectBriefSchema.extend({
-    starterPrompt: z.string(),
+    starterPrompt: z.string().max(40_000),
     mode: z.enum(["plain", "specKit"]),
   }),
 });
 
-function getClientKey(request: Request) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "local"
-  );
-}
+const shareIdSchema = z.string().uuid();
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
   const limit = checkRateLimit(getClientKey(request), {
     limit: 30,
     windowMs: 60 * 60 * 1000,
@@ -64,12 +63,22 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const id = new URL(request.url).searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "Missing id." }, { status: 400 });
+  const limit = checkRateLimit(`share-get:${getClientKey(request)}`, {
+    limit: 120,
+    windowMs: 60 * 60 * 1000,
+  });
+
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
 
-  const record = getShare(id);
+  const id = new URL(request.url).searchParams.get("id");
+  const parsedId = shareIdSchema.safeParse(id);
+  if (!parsedId.success) {
+    return NextResponse.json({ error: "Share not found." }, { status: 404 });
+  }
+
+  const record = getShare(parsedId.data);
   if (!record) {
     return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }

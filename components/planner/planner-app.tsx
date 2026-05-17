@@ -6,7 +6,6 @@ import { startTransition, useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import type {
   ClarifierAnswers,
   ClarifierQuestion,
@@ -16,6 +15,7 @@ import type {
   ProjectBriefWithStarter,
 } from "@/lib/ai/planner-schema";
 import type { SectionName } from "@/lib/ai/section-schemas";
+import { parseNdjsonStream } from "@/lib/ndjson-stream";
 import {
   buildShareUrlForId,
   clearCurrentHash,
@@ -207,53 +207,29 @@ export function PlannerApp() {
         throw new Error(message || "The project brief could not be generated.");
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
       let finalBrief: ProjectBriefWithStarter | null = null;
       let finalModel: string | null = null;
       let streamError: string | null = null;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+      type StreamEvent =
+        | { type: "partial"; brief: Record<string, unknown> }
+        | { type: "status"; message: string }
+        | { type: "done"; brief: ProjectBriefWithStarter; model: string }
+        | { type: "error"; error: string };
 
-        let newlineIndex = buffer.indexOf("\n");
-        while (newlineIndex !== -1) {
-          const line = buffer.slice(0, newlineIndex).trim();
-          buffer = buffer.slice(newlineIndex + 1);
-
-          if (line.length > 0) {
-            try {
-              const event = JSON.parse(line) as
-                | { type: "partial"; brief: Record<string, unknown> }
-                | { type: "status"; message: string }
-                | {
-                    type: "done";
-                    brief: ProjectBriefWithStarter;
-                    model: string;
-                  }
-                | { type: "error"; error: string };
-
-              if (event.type === "partial") {
-                setStreamingBrief(event.brief);
-              } else if (event.type === "status") {
-                setStreamingBrief((prev) => ({
-                  ...(prev ?? {}),
-                  __status: event.message,
-                }));
-              } else if (event.type === "done") {
-                finalBrief = event.brief;
-                finalModel = event.model;
-              } else {
-                streamError = event.error;
-              }
-            } catch {
-              // ignore malformed chunk
-            }
-          }
-          newlineIndex = buffer.indexOf("\n");
+      for await (const event of parseNdjsonStream<StreamEvent>(response.body)) {
+        if (event.type === "partial") {
+          setStreamingBrief(event.brief);
+        } else if (event.type === "status") {
+          setStreamingBrief((prev) => ({
+            ...(prev ?? {}),
+            __status: event.message,
+          }));
+        } else if (event.type === "done") {
+          finalBrief = event.brief;
+          finalModel = event.model;
+        } else if (event.type === "error") {
+          streamError = event.error;
         }
       }
 
@@ -415,11 +391,7 @@ export function PlannerApp() {
 
           <section className="flex min-w-0 flex-col gap-10">
             {isLoading && !brief ? (
-              streamingBrief ? (
-                <StreamingPreview partial={streamingBrief} />
-              ) : (
-                <LoadingBrief />
-              )
+              <StreamingPreview partial={streamingBrief ?? {}} />
             ) : null}
             {brief ? (
               <>
@@ -513,21 +485,17 @@ function EmptyGraphCard({ isLoading }: { isLoading: boolean }) {
     <Card className="paper-card">
       <CardContent className="pt-4">
         <div className="memo-surface flex h-80 flex-col items-center justify-center gap-4 border border-border text-center">
-          {isLoading ? (
-            <>
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-64" />
-              <Skeleton className="h-4 w-56" />
-            </>
-          ) : (
-            <>
-              <span className="section-anchor">Data model</span>
-              <p className="max-w-xs text-sm leading-6 text-muted-foreground">
-                React Flow will visualise generated entities and relationships
-                once the first brief is created.
-              </p>
-            </>
-          )}
+          <span className="section-anchor">Data model</span>
+          <p className="max-w-xs text-sm leading-6 text-muted-foreground">
+            {isLoading ? (
+              <>
+                Drafting entities and relationships
+                <span className="animate-pulse">…</span>
+              </>
+            ) : (
+              "React Flow will visualise generated entities and relationships once the first brief is created."
+            )}
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -540,22 +508,6 @@ function RautakiLogo() {
       Raut<span className="accent-letter">a</span>k
       <span className="accent-letter">i</span>
     </div>
-  );
-}
-
-function LoadingBrief() {
-  return (
-    <Card className="paper-card">
-      <CardContent className="flex flex-col gap-4 p-8">
-        <Skeleton className="h-8 w-72" />
-        <Skeleton className="h-24 w-full" />
-        <div className="grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-36 w-full" />
-          <Skeleton className="h-36 w-full" />
-          <Skeleton className="h-36 w-full" />
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

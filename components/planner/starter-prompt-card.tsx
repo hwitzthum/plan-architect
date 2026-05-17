@@ -53,14 +53,10 @@ export function StarterPromptCard({
         <Textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-h-72 bg-muted font-mono text-sm leading-7 shadow-inner"
+          className="min-h-72 bg-card font-mono text-sm leading-7"
         />
         <div className="flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            onClick={copyPrompt}
-            className="command-strip px-5 font-medium text-primary-foreground"
-          >
+          <Button type="button" onClick={copyPrompt} className="px-5">
             {copied ? (
               <CheckIcon data-icon="inline-start" />
             ) : (

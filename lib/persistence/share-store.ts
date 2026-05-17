@@ -8,6 +8,12 @@ export type SharedBrief = {
   createdAt: number;
 };
 
+// In-memory share store. Suitable for a single-user deployment behind
+// Vercel Password Protection. To migrate to durable storage (Vercel KV,
+// Upstash Redis), swap the three functions below — `newShareId`, `putShare`,
+// `getShare` — to a KV-backed implementation. The rest of the codebase
+// imports through this module so no other files need to change.
+
 type GlobalWithStore = typeof globalThis & {
   __planArchitectShareStore?: Map<string, SharedBrief>;
 };
@@ -21,15 +27,26 @@ function store(): Map<string, SharedBrief> {
 }
 
 const MAX_ENTRIES = 500;
+const TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export function newShareId(): string {
-  return Math.random().toString(36).slice(2, 10);
+  return crypto.randomUUID();
+}
+
+function evictExpired(): void {
+  const s = store();
+  const cutoff = Date.now() - TTL_MS;
+  for (const [id, record] of s) {
+    if (record.createdAt < cutoff) {
+      s.delete(id);
+    }
+  }
 }
 
 export function putShare(record: SharedBrief): void {
+  evictExpired();
   const s = store();
   if (s.size >= MAX_ENTRIES) {
-    // Drop the oldest entry to bound memory usage.
     const oldestKey = s.keys().next().value;
     if (oldestKey) s.delete(oldestKey);
   }
@@ -37,5 +54,11 @@ export function putShare(record: SharedBrief): void {
 }
 
 export function getShare(id: string): SharedBrief | null {
-  return store().get(id) ?? null;
+  const record = store().get(id);
+  if (!record) return null;
+  if (Date.now() - record.createdAt > TTL_MS) {
+    store().delete(id);
+    return null;
+  }
+  return record;
 }

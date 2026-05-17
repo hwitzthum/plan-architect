@@ -162,7 +162,7 @@ export function DataModelEditor({
 
           {entities.map((entity, index) => (
             <div
-              className="flex flex-col gap-4 border bg-muted p-4 shadow-inner"
+              className="flex flex-col gap-4 border bg-muted p-4"
               key={entity.id}
             >
               <div className="grid gap-4 md:grid-cols-[0.55fr_0.45fr_auto]">
@@ -223,7 +223,7 @@ export function DataModelEditor({
                       fields: fieldsToList(event.target.value),
                     })
                   }
-                  className="min-h-28 bg-card font-mono text-sm leading-7 shadow-inner"
+                  className="min-h-28 bg-card font-mono text-sm leading-7"
                 />
               </label>
             </div>
@@ -265,7 +265,7 @@ export function DataModelEditor({
 
           {relationships.map((relationship, index) => (
             <div
-              className="grid gap-4 border bg-muted p-4 shadow-inner md:grid-cols-[1fr_1fr_1fr_auto]"
+              className="grid gap-4 border bg-muted p-4 md:grid-cols-[1fr_1fr_1fr_auto]"
               key={relationship.id}
             >
               <Select

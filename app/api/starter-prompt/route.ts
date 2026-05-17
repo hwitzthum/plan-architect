@@ -1,24 +1,24 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { AiConfigError, getAiConfig } from "@/lib/ai/ai-config";
 import { distillStarterPrompt } from "@/lib/ai/distill-starter-prompt";
-import { DEFAULT_OPENROUTER_MODEL } from "@/lib/ai/openrouter";
 import { projectBriefSchema } from "@/lib/ai/planner-schema";
+import { logError, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
 const requestSchema = z.object({
   brief: projectBriefSchema,
 });
 
-function getClientKey(request: Request) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "local"
-  );
-}
-
 export async function POST(request: Request) {
+  const requestId = newRequestId();
+
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
   const limit = checkRateLimit(getClientKey(request), {
     limit: 20,
     windowMs: 60 * 60 * 1000,
@@ -41,20 +41,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Missing OPENROUTER_API_KEY in the server environment." },
-      { status: 500 },
-    );
+  let apiKey: string;
+  let modelId: string;
+  try {
+    ({ apiKey, modelId } = getAiConfig());
+  } catch (error) {
+    if (error instanceof AiConfigError) {
+      logError({ route: "starter-prompt", requestId, error });
+      return NextResponse.json(
+        { error: "AI service is not configured." },
+        { status: 503 },
+      );
+    }
+    throw error;
   }
-
-  const modelId = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
 
   const { starterPrompt, source } = await distillStarterPrompt(
     parsed.data.brief,
     apiKey,
     modelId,
+    request.signal,
   );
 
   return NextResponse.json({ starterPrompt, source });

@@ -3,29 +3,31 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
+  AI_MAX_OUTPUT_TOKENS,
+  AiConfigError,
+  getAiConfig,
+  getAiModel,
+} from "@/lib/ai/ai-config";
+import {
   buildClarifierPrompt,
   CLARIFIER_SYSTEM_PROMPT,
 } from "@/lib/ai/clarifier-prompt";
 import { clarifierSchema } from "@/lib/ai/clarifier-schema";
-import {
-  DEFAULT_OPENROUTER_MODEL,
-  getOpenRouterModel,
-} from "@/lib/ai/openrouter";
+import { logError, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
 const requestSchema = z.object({
   idea: z.string().trim().min(10).max(2000),
 });
 
-function getClientKey(request: Request) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "local"
-  );
-}
-
 export async function POST(request: Request) {
+  const requestId = newRequestId();
+
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
   const limit = checkRateLimit(getClientKey(request), {
     limit: 20,
     windowMs: 60 * 60 * 1000,
@@ -48,21 +50,27 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Missing OPENROUTER_API_KEY in the server environment." },
-      { status: 500 },
-    );
+  let config;
+  try {
+    config = getAiConfig();
+  } catch (error) {
+    if (error instanceof AiConfigError) {
+      logError({ route: "clarify", requestId, error });
+      return NextResponse.json(
+        { error: "AI service is not configured." },
+        { status: 503 },
+      );
+    }
+    throw error;
   }
-
-  const modelId = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
 
   try {
     const { output } = await generateText({
-      model: getOpenRouterModel(apiKey, modelId),
+      model: getAiModel(config),
       system: CLARIFIER_SYSTEM_PROMPT,
       prompt: buildClarifierPrompt(parsed.data.idea),
+      abortSignal: request.signal,
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
       output: Output.object({
         name: "ClarifierQuestions",
         description: "Three to five idea-aware clarifying questions.",
@@ -72,17 +80,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ questions: output.questions });
   } catch (error) {
+    logError({ route: "clarify", requestId, error });
     if (NoObjectGeneratedError.isInstance(error)) {
-      console.error("Clarifier structured output failed", error.cause);
       return NextResponse.json(
         { error: "Could not generate clarifying questions. Try again." },
         { status: 502 },
       );
     }
-    console.error("Clarifier generation failed", error);
     return NextResponse.json(
-      { error: "Clarifier generation failed. Check the OpenRouter key." },
-      { status: 500 },
+      { error: "AI service is currently unavailable." },
+      { status: 503 },
     );
   }
 }
