@@ -23,6 +23,8 @@ import { logError, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
+export const maxDuration = 30;
+
 const requestSchema = z.object({
   brief: projectBriefSchema,
   section: z.enum(SECTION_NAMES as [SectionName, ...SectionName[]]),
