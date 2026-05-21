@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     brief: parsed.data.brief as SharedBrief["brief"],
     createdAt: Date.now(),
   };
-  putShare(record);
+  await putShare(record);
 
   return NextResponse.json({ id });
 }
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }
 
-  const record = getShare(parsedId.data);
+  const record = await getShare(parsedId.data);
   if (!record) {
     return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }

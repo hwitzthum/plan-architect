@@ -1,3 +1,13 @@
+// Upstash Redis implementation of the share store.
+//
+// Setup:
+//   1. In the Vercel dashboard, link an Upstash for Redis integration from
+//      the Marketplace. The integration auto-provisions KV_REST_API_URL and
+//      KV_REST_API_TOKEN (legacy Vercel KV naming, kept for compatibility).
+//   2. For local dev, pull those vars via `vercel env pull .env.local`.
+
+import { Redis } from "@upstash/redis";
+
 import type { ProjectBriefWithStarter } from "@/lib/ai/planner-schema";
 
 export type SharedBrief = {
@@ -8,57 +18,29 @@ export type SharedBrief = {
   createdAt: number;
 };
 
-// In-memory share store. Suitable for a single-user deployment behind
-// Vercel Password Protection. To migrate to durable storage (Vercel KV,
-// Upstash Redis), swap the three functions below — `newShareId`, `putShare`,
-// `getShare` — to a KV-backed implementation. The rest of the codebase
-// imports through this module so no other files need to change.
+const KEY_PREFIX = "share:";
+const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
-type GlobalWithStore = typeof globalThis & {
-  __planArchitectShareStore?: Map<string, SharedBrief>;
-};
-
-function store(): Map<string, SharedBrief> {
-  const g = globalThis as GlobalWithStore;
-  if (!g.__planArchitectShareStore) {
-    g.__planArchitectShareStore = new Map();
+let redisClient: Redis | null = null;
+function redis(): Redis {
+  if (!redisClient) {
+    redisClient = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    });
   }
-  return g.__planArchitectShareStore;
+  return redisClient;
 }
-
-const MAX_ENTRIES = 500;
-const TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export function newShareId(): string {
   return crypto.randomUUID();
 }
 
-function evictExpired(): void {
-  const s = store();
-  const cutoff = Date.now() - TTL_MS;
-  for (const [id, record] of s) {
-    if (record.createdAt < cutoff) {
-      s.delete(id);
-    }
-  }
+export async function putShare(record: SharedBrief): Promise<void> {
+  await redis().set(`${KEY_PREFIX}${record.id}`, record, { ex: TTL_SECONDS });
 }
 
-export function putShare(record: SharedBrief): void {
-  evictExpired();
-  const s = store();
-  if (s.size >= MAX_ENTRIES) {
-    const oldestKey = s.keys().next().value;
-    if (oldestKey) s.delete(oldestKey);
-  }
-  s.set(record.id, record);
-}
-
-export function getShare(id: string): SharedBrief | null {
-  const record = store().get(id);
-  if (!record) return null;
-  if (Date.now() - record.createdAt > TTL_MS) {
-    store().delete(id);
-    return null;
-  }
-  return record;
+export async function getShare(id: string): Promise<SharedBrief | null> {
+  const record = await redis().get<SharedBrief>(`${KEY_PREFIX}${id}`);
+  return record ?? null;
 }
