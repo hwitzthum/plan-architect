@@ -1,55 +1,57 @@
-// In-process rate limiter. Counters are held in a module-level Map and reset
-// on every cold start. This is acceptable for a single-user deployment behind
-// Vercel Password Protection; for a multi-user public deployment, swap the
-// `buckets` store for a durable KV (Vercel KV, Upstash Redis) with the same
-// `checkRateLimit` signature so callers do not need to change.
+// Upstash Redis fixed-window rate limiter.
+//
+// The bucket key embeds the current window index (floor(now / windowMs)), so a
+// new key — and a new TTL — starts every window automatically. INCR is atomic;
+// PEXPIRE only fires on the first hit per window (count === 1).
+//
+// Env vars (KV_REST_API_URL, KV_REST_API_TOKEN) are auto-provisioned by the
+// Vercel Marketplace Upstash for Redis integration.
+
+import { Redis } from "@upstash/redis";
 
 type RateLimitOptions = {
   limit: number;
   windowMs: number;
 };
 
-type RateLimitEntry = {
-  count: number;
+type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
   resetAt: number;
 };
 
-type GlobalWithBuckets = typeof globalThis & {
-  __planArchitectRateBuckets?: Map<string, RateLimitEntry>;
-};
-
-function buckets(): Map<string, RateLimitEntry> {
-  const g = globalThis as GlobalWithBuckets;
-  if (!g.__planArchitectRateBuckets) {
-    g.__planArchitectRateBuckets = new Map();
+let redisClient: Redis | null = null;
+function redis(): Redis {
+  if (!redisClient) {
+    redisClient = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    });
   }
-  return g.__planArchitectRateBuckets;
+  return redisClient;
 }
 
-export function checkRateLimit(key: string, options: RateLimitOptions) {
-  const now = Date.now();
-  const store = buckets();
-  const current = store.get(key);
+export async function checkRateLimit(
+  key: string,
+  options: RateLimitOptions,
+): Promise<RateLimitResult> {
+  const bucketKey = `rl:${key}:${Math.floor(Date.now() / options.windowMs)}`;
+  const count = await redis().incr(bucketKey);
 
-  if (!current || current.resetAt <= now) {
-    store.set(key, { count: 1, resetAt: now + options.windowMs });
-    return {
-      allowed: true,
-      remaining: options.limit - 1,
-      resetAt: now + options.windowMs,
-    };
+  if (count === 1) {
+    await redis().pexpire(bucketKey, options.windowMs);
   }
 
-  if (current.count >= options.limit) {
-    return { allowed: false, remaining: 0, resetAt: current.resetAt };
-  }
+  const ttl = await redis().pttl(bucketKey);
+  const resetAt = Date.now() + (ttl > 0 ? ttl : options.windowMs);
 
-  current.count += 1;
-  store.set(key, current);
+  if (count > options.limit) {
+    return { allowed: false, remaining: 0, resetAt };
+  }
 
   return {
     allowed: true,
-    remaining: options.limit - current.count,
-    resetAt: current.resetAt,
+    remaining: Math.max(0, options.limit - count),
+    resetAt,
   };
 }

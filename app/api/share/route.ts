@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const limit = checkRateLimit(getClientKey(request), {
+  const limit = await checkRateLimit(getClientKey(request), {
     limit: 30,
     windowMs: 60 * 60 * 1000,
   });
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const limit = checkRateLimit(`share-get:${getClientKey(request)}`, {
+  const limit = await checkRateLimit(`share-get:${getClientKey(request)}`, {
     limit: 120,
     windowMs: 60 * 60 * 1000,
   });
