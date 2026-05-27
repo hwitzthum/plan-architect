@@ -146,7 +146,7 @@ If the distillation call fails for some reason, the app silently falls back to a
 The **Share** button in the masthead does the following:
 
 1. POSTs the full brief + idea + model to `/api/share`.
-2. The server stores the payload in an in-memory map and returns a short 8-character id.
+2. The server stores the payload in an in-memory map and returns a short 36-character id.
 3. The client builds a short URL of the form `http://your-host/#s=<id>` and writes it to your clipboard.
 
 Anyone opening that URL — incognito, different browser, different machine — will have the app fetch `/api/share?id=<id>` on mount, hydrate the brief, clear the hash from the address bar, and auto-save the brief to their own `localStorage`. They can edit, regenerate, and re-share from there independently.
