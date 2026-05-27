@@ -23,10 +23,16 @@ type RateLimitResult = {
 let redisClient: Redis | null = null;
 function redis(): Redis {
   if (!redisClient) {
-    redisClient = new Redis({
-      url: process.env.KV_REST_API_URL!,
-      token: process.env.KV_REST_API_TOKEN!,
-    });
+    const url = process.env.KV_REST_API_URL;
+    const token = process.env.KV_REST_API_TOKEN;
+    if (!url || !token) {
+      throw new Error(
+        "Missing Upstash Redis credentials: KV_REST_API_URL and KV_REST_API_TOKEN must be set. " +
+          "Link an Upstash for Redis integration in the Vercel dashboard, then run " +
+          "`vercel env pull .env.local` for local development.",
+      );
+    }
+    redisClient = new Redis({ url, token });
   }
   return redisClient;
 }
