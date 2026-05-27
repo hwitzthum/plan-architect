@@ -13,7 +13,11 @@ Next.js App Router · React 19 · Tailwind CSS v4 · shadcn/ui · AI SDK v6 · O
 ```bash
 OPENROUTER_API_KEY=your_openrouter_key
 OPENROUTER_MODEL=anthropic/claude-sonnet-4.6   # optional
+KV_REST_API_URL=https://...upstash.io           # required for sharing (Upstash for Redis)
+KV_REST_API_TOKEN=...                           # required for sharing (Upstash for Redis)
 ```
+
+`KV_REST_API_URL` and `KV_REST_API_TOKEN` are provisioned automatically when you link an **Upstash for Redis** integration in the Vercel Marketplace dashboard. For local development, pull them with `vercel env pull .env.local`.
 
 The eval CLI reads the same key.
 
@@ -146,16 +150,16 @@ If the distillation call fails for some reason, the app silently falls back to a
 The **Share** button in the masthead does the following:
 
 1. POSTs the full brief + idea + model to `/api/share`.
-2. The server stores the payload in an in-memory map and returns a short 36-character id.
+2. The server stores the payload in Upstash Redis (30-day TTL) and returns a short 36-character UUID.
 3. The client builds a short URL of the form `http://your-host/#s=<id>` and writes it to your clipboard.
 
 Anyone opening that URL — incognito, different browser, different machine — will have the app fetch `/api/share?id=<id>` on mount, hydrate the brief, clear the hash from the address bar, and auto-save the brief to their own `localStorage`. They can edit, regenerate, and re-share from there independently.
 
 **Trade-offs to know:**
 
-- **In-memory store.** Shares live until the server restarts. Restart the dev server and old `#s=<id>` URLs return a "share is no longer available" error. The store interface in `lib/persistence/share-store.ts` is the single swap-in point for Vercel KV, Upstash Redis, or a small database — the rest of the codebase imports through it.
+- **Persistent via Upstash Redis.** Shares survive server restarts and scale across serverless instances. The store uses a 30-day TTL — after that, old `#s=<id>` URLs return a "share is no longer available" error. `KV_REST_API_URL` and `KV_REST_API_TOKEN` must be set (see _Environment_ above); a Vercel Marketplace Upstash for Redis integration provisions them automatically.
 - **Single-user deployment assumed.** This codebase is meant to be deployed behind Vercel Password Protection (see "Deployment & Security" below). Without that, anyone with the URL can drain your OpenRouter key.
-- **Cryptographic IDs.** Share ids are `crypto.randomUUID()` (128-bit). The store keeps at most 500 shares and expires entries after 30 days.
+- **Cryptographic IDs.** Share ids are `crypto.randomUUID()` (128-bit) and expire after 30 days.
 
 ### Local persistence
 
@@ -173,10 +177,10 @@ There is no UI for managing multiple saved briefs in this version, but the data 
 | `POST /api/plan`           | Streams a project brief (NDJSON: `partial` → `status` → `done`). |
 | `POST /api/plan/section`   | Regenerates a single section of an existing brief.               |
 | `POST /api/starter-prompt` | Re-distills the starter prompt from a brief.                     |
-| `POST /api/share`          | Stores a brief in the in-memory share store; returns a short id. |
+| `POST /api/share`          | Stores a brief in Upstash Redis (30-day TTL); returns a UUID.    |
 | `GET  /api/share?id=<id>`  | Returns the stored brief for `#s=<id>` hydration.                |
 
-All endpoints share an in-memory rate limiter keyed by client IP (`x-vercel-forwarded-for`, falling back to `x-real-ip`). The limiter is per-process — on Vercel cold starts reset it. Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
+All endpoints share a Redis-backed rate limiter keyed by client IP (`x-vercel-forwarded-for`, falling back to `x-real-ip`). Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
 
 All POST endpoints reject cross-origin requests via an `Origin` header check.
 
