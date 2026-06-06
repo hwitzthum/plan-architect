@@ -11,6 +11,8 @@ import {
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
+const MAX_SHARE_JSON_BYTES = 256 * 1024; // 256 KB — well above any real LLM brief
+
 const requestSchema = z.object({
   idea: z.string().trim().min(1).max(4000),
   model: z.string().max(200).nullable(),
@@ -46,6 +48,14 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Invalid share payload." },
       { status: 400 },
+    );
+  }
+
+  const payloadBytes = Buffer.byteLength(JSON.stringify(parsed.data), "utf8");
+  if (payloadBytes > MAX_SHARE_JSON_BYTES) {
+    return NextResponse.json(
+      { error: "Share payload too large." },
+      { status: 413 },
     );
   }
 
