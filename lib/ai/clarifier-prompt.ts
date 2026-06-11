@@ -12,7 +12,8 @@ Given a rough app idea, return 3 to 5 questions that, if answered, would meaning
 
 Constraints:
 - Each question must be answerable in one short phrase.
-- Provide 2 to 5 mutually-exclusive options. Phrase options as concrete answers, not metavariables.
+- Provide 2 to 5 options. Phrase options as concrete answers, not metavariables.
+- Set allowMultiple to true when several options can sensibly apply at once (target platforms, integrations, content types); set it to false when the options are mutually exclusive (persistence model, auth model).
 - Set allowFreeText to true only when no small fixed set of options fits.
 - Do not ask about UI styling, colour, brand, or naming.
 - Do not ask anything already obvious from the idea itself.

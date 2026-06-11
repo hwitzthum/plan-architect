@@ -9,7 +9,12 @@ export const clarifierQuestionSchema = z.object({
   options: z
     .array(z.string())
     .min(1)
-    .describe("Two to five mutually-exclusive choices the user can pick from."),
+    .describe("Two to five concrete choices the user can pick from."),
+  allowMultiple: z
+    .boolean()
+    .describe(
+      "If true, the user can select every option that applies instead of exactly one.",
+    ),
   allowFreeText: z
     .boolean()
     .describe("If true, the UI also offers a free-text 'Other' field."),
