@@ -17,7 +17,9 @@ import { logError, logWarn, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
-export const maxDuration = 60;
+// Two sequential LLM calls (brief stream + starter-prompt distill), each
+// allowed AI_REQUEST_TIMEOUT_MS (90s) — the function cap must exceed their sum.
+export const maxDuration = 300;
 
 const requestSchema = z.object({
   idea: z.string().trim().min(10).max(2000),

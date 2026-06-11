@@ -26,11 +26,22 @@ export function ClarifierDialog({
   onSubmit,
   onSkip,
 }: ClarifierDialogProps) {
-  const [picks, setPicks] = useState<Record<string, string>>({});
+  const [picks, setPicks] = useState<Record<string, string[]>>({});
   const [freeText, setFreeText] = useState<Record<string, string>>({});
 
-  function handleOption(questionId: string, value: string) {
-    setPicks((prev) => ({ ...prev, [questionId]: value }));
+  function handleOption(question: ClarifierQuestion, value: string) {
+    setPicks((prev) => {
+      const current = prev[question.id] ?? [];
+      if (question.allowMultiple) {
+        return {
+          ...prev,
+          [question.id]: current.includes(value)
+            ? current.filter((picked) => picked !== value)
+            : [...current, value],
+        };
+      }
+      return { ...prev, [question.id]: [value] };
+    });
   }
 
   function handleFreeText(questionId: string, value: string) {
@@ -40,13 +51,13 @@ export function ClarifierDialog({
   function buildAnswers(): ClarifierAnswers {
     const answers: ClarifierAnswers = {};
     for (const question of questions) {
-      const pick = picks[question.id];
-      if (pick === FREE_TEXT_SENTINEL) {
+      const selected = picks[question.id] ?? [];
+      const parts = selected.filter((value) => value !== FREE_TEXT_SENTINEL);
+      if (selected.includes(FREE_TEXT_SENTINEL)) {
         const text = freeText[question.id]?.trim();
-        if (text) answers[question.id] = text;
-      } else if (pick) {
-        answers[question.id] = pick;
+        if (text) parts.push(text);
       }
+      if (parts.length > 0) answers[question.id] = parts.join("; ");
     }
     return answers;
   }
@@ -74,18 +85,25 @@ export function ClarifierDialog({
               <span className="micro-label mt-1 shrink-0">
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <p className="text-base leading-7">{question.question}</p>
+              <p className="text-base leading-7">
+                {question.question}
+                {question.allowMultiple ? (
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    Select all that apply.
+                  </span>
+                ) : null}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2 pl-10">
               {question.options.map((option) => {
-                const active = picks[question.id] === option;
+                const active = (picks[question.id] ?? []).includes(option);
                 return (
                   <Button
                     key={option}
                     type="button"
                     variant={active ? "default" : "outline"}
                     size="sm"
-                    onClick={() => handleOption(question.id, option)}
+                    onClick={() => handleOption(question, option)}
                     className="px-3 text-sm"
                   >
                     {option}
@@ -96,19 +114,19 @@ export function ClarifierDialog({
                 <Button
                   type="button"
                   variant={
-                    picks[question.id] === FREE_TEXT_SENTINEL
+                    (picks[question.id] ?? []).includes(FREE_TEXT_SENTINEL)
                       ? "default"
                       : "outline"
                   }
                   size="sm"
-                  onClick={() => handleOption(question.id, FREE_TEXT_SENTINEL)}
+                  onClick={() => handleOption(question, FREE_TEXT_SENTINEL)}
                   className="px-3 text-sm"
                 >
                   Other…
                 </Button>
               ) : null}
             </div>
-            {picks[question.id] === FREE_TEXT_SENTINEL ? (
+            {(picks[question.id] ?? []).includes(FREE_TEXT_SENTINEL) ? (
               <div className="pl-10">
                 <Textarea
                   value={freeText[question.id] ?? ""}

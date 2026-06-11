@@ -54,7 +54,7 @@ Open `http://localhost:3000`.
 
 The textarea is intentionally a one-shot rough sketch — keep it short. Two sentences is plenty. When you click **Generate brief**, the app makes a short first LLM call to `/api/clarify` and returns 3–5 idea-specific questions before generating anything.
 
-The questions are not boilerplate. For _"A SaaS for tracking team OKRs with Stripe billing"_ it will ask about OKR hierarchy depth, billing structure (per-seat vs flat vs tiered), and how teams update progress. For _"A decision log for small teams"_ it will ask about multi-user, persistence, and Slack integration. Each question has 2–5 mutually-exclusive options plus an optional **Other…** free-text fallback.
+The questions are not boilerplate. For _"A SaaS for tracking team OKRs with Stripe billing"_ it will ask about OKR hierarchy depth, billing structure (per-seat vs flat vs tiered), and how teams update progress. For _"A decision log for small teams"_ it will ask about multi-user, persistence, and Slack integration. Each question has 2–5 options plus an optional **Other…** free-text fallback. When several answers can apply at once (target platforms, integrations, content types), the question is marked "Select all that apply" and you can toggle multiple options; mutually-exclusive questions stay single-choice.
 
 You can **Skip questions** at any time — useful when your idea already specifies the answers. Answered or skipped, your answers are forwarded as extra context to the brief-generation call.
 

@@ -10,9 +10,10 @@ import type {
   ClarifierAnswers,
   ClarifierQuestion,
 } from "@/lib/ai/clarifier-schema";
-import type {
-  BriefMode,
-  ProjectBriefWithStarter,
+import {
+  projectBriefSchema,
+  type BriefMode,
+  type ProjectBriefWithStarter,
 } from "@/lib/ai/planner-schema";
 import type { SectionName } from "@/lib/ai/section-schemas";
 import { parseNdjsonStream } from "@/lib/ndjson-stream";
@@ -210,6 +211,7 @@ export function PlannerApp() {
       let finalBrief: ProjectBriefWithStarter | null = null;
       let finalModel: string | null = null;
       let streamError: string | null = null;
+      let latestPartial: Record<string, unknown> | null = null;
 
       type StreamEvent =
         | { type: "partial"; brief: Record<string, unknown> }
@@ -219,6 +221,7 @@ export function PlannerApp() {
 
       for await (const event of parseNdjsonStream<StreamEvent>(response.body)) {
         if (event.type === "partial") {
+          latestPartial = event.brief;
           setStreamingBrief(event.brief);
         } else if (event.type === "status") {
           setStreamingBrief((prev) => ({
@@ -233,9 +236,28 @@ export function PlannerApp() {
         }
       }
 
+      if (!finalBrief) {
+        // The stream ended without a `done` event (function timeout, network
+        // drop, or distill failure). If the brief itself finished streaming,
+        // recover it instead of discarding the draft.
+        const salvaged = salvagePartialBrief(latestPartial, mode);
+        if (salvaged) {
+          startTransition(() => {
+            setBrief(salvaged);
+            setModel(null);
+            setStreamingBrief(null);
+            setClarifierQuestions(null);
+          });
+          setError(
+            "The brief was recovered, but the starter prompt could not be generated. Use Regenerate in the Hand-off section.",
+          );
+          return;
+        }
+        throw new Error(
+          streamError || "The project brief could not be generated.",
+        );
+      }
       if (streamError) throw new Error(streamError);
-      if (!finalBrief)
-        throw new Error("The project brief could not be generated.");
 
       const briefForState = finalBrief;
       startTransition(() => {
@@ -509,6 +531,18 @@ function RautakiLogo() {
       <span className="accent-letter">i</span>
     </div>
   );
+}
+
+function salvagePartialBrief(
+  partial: Record<string, unknown> | null,
+  mode: BriefMode,
+): ProjectBriefWithStarter | null {
+  if (!partial) return null;
+  const { __status: _status, ...candidate } = partial;
+  void _status;
+  const parsed = projectBriefSchema.safeParse(candidate);
+  if (!parsed.success) return null;
+  return { ...parsed.data, mode, starterPrompt: "" };
 }
 
 function applySectionPatch(
