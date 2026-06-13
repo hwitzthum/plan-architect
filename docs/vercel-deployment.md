@@ -14,7 +14,7 @@ Set these in **Vercel → Project Settings → Environment Variables**:
 
 Set per-route via `export const maxDuration` (already configured):
 
-- `app/api/plan/route.ts` — 60s (two sequential LLM calls).
+- `app/api/plan/route.ts` — 300s (two sequential LLM calls).
 - `app/api/clarify/route.ts` — 30s.
 - `app/api/starter-prompt/route.ts` — 30s.
 - `app/api/plan/section/route.ts` — 30s.
