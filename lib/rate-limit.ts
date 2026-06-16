@@ -42,22 +42,28 @@ export async function checkRateLimit(
   options: RateLimitOptions,
 ): Promise<RateLimitResult> {
   const bucketKey = `rl:${key}:${Math.floor(Date.now() / options.windowMs)}`;
-  const count = await redis().incr(bucketKey);
+  try {
+    const count = await redis().incr(bucketKey);
 
-  if (count === 1) {
-    await redis().pexpire(bucketKey, options.windowMs);
+    if (count === 1) {
+      await redis().pexpire(bucketKey, options.windowMs);
+    }
+
+    const ttl = await redis().pttl(bucketKey);
+    const resetAt = Date.now() + (ttl > 0 ? ttl : options.windowMs);
+
+    if (count > options.limit) {
+      return { allowed: false, remaining: 0, resetAt };
+    }
+
+    return {
+      allowed: true,
+      remaining: Math.max(0, options.limit - count),
+      resetAt,
+    };
+  } catch {
+    // Redis unreachable — fail closed. Callers should return 503 so the
+    // client knows to retry; a 429 would be misleading (it's not their fault).
+    return { allowed: false, remaining: 0, resetAt: Date.now() + options.windowMs };
   }
-
-  const ttl = await redis().pttl(bucketKey);
-  const resetAt = Date.now() + (ttl > 0 ? ttl : options.windowMs);
-
-  if (count > options.limit) {
-    return { allowed: false, remaining: 0, resetAt };
-  }
-
-  return {
-    allowed: true,
-    remaining: Math.max(0, options.limit - count),
-    resetAt,
-  };
 }

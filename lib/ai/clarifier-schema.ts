@@ -24,6 +24,7 @@ export const clarifierSchema = z.object({
   questions: z
     .array(clarifierQuestionSchema)
     .min(1)
+    .max(10)
     .describe(
       "Three to five idea-aware questions that meaningfully change the eventual plan.",
     ),
