@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const limit = await checkRateLimit(getClientKey(request), {
+  const limit = await checkRateLimit(`section:${getClientKey(request)}`, {
     limit: 40,
     windowMs: 60 * 60 * 1000,
   });
