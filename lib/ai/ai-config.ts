@@ -28,12 +28,16 @@ export function getAiModel(config: AiConfig = getAiConfig()) {
   return getOpenRouterModel(config.apiKey, config.modelId);
 }
 
+// Clamp to [1, 32000] so a misconfigured or very large env value cannot
+// trigger runaway API cost. parseInt returns NaN for non-numeric strings;
+// the fallback keeps NaN and values outside the window at 8 000.
 const _rawTokens = Number.parseInt(
-  process.env.OPENROUTER_MAX_OUTPUT_TOKENS ?? "",
+  process.env.OPENROUTER_MAX_OUTPUT_TOKENS ?? "8000",
   10,
 );
-// Fall back to 8000 if the env var is unset, empty, or non-numeric (e.g. "8k").
-// Passing NaN to the AI SDK removes the cap entirely, risking unbounded billing.
-export const AI_MAX_OUTPUT_TOKENS = Number.isNaN(_rawTokens) ? 8000 : _rawTokens;
+export const AI_MAX_OUTPUT_TOKENS =
+  Number.isFinite(_rawTokens) && _rawTokens >= 1 && _rawTokens <= 32_000
+    ? _rawTokens
+    : 8_000;
 
 export const AI_REQUEST_TIMEOUT_MS = 90_000;

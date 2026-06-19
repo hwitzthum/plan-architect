@@ -10,6 +10,10 @@ import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
 export const maxDuration = 30;
 
+// Matches the cap in /api/plan/section — prevents oversized briefs from
+// inflating prompt size and AI cost.
+const MAX_BRIEF_JSON_BYTES = 64 * 1024; // 64 KB
+
 const requestSchema = z.object({
   brief: projectBriefSchema,
 });
@@ -40,6 +44,17 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "A valid brief is required." },
       { status: 400 },
+    );
+  }
+
+  const briefByteLength = Buffer.byteLength(
+    JSON.stringify(parsed.data.brief),
+    "utf8",
+  );
+  if (briefByteLength > MAX_BRIEF_JSON_BYTES) {
+    return NextResponse.json(
+      { error: "Brief is too large." },
+      { status: 413 },
     );
   }
 
