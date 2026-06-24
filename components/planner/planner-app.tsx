@@ -575,9 +575,11 @@ type ShareButtonProps = {
 function ShareButton({ brief, idea, model }: ShareButtonProps) {
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [busy, setBusy] = useState(false);
+  const [failReason, setFailReason] = useState("");
 
   async function handleClick() {
     setBusy(true);
+    setFailReason("");
     try {
       const response = await fetch("/api/share", {
         method: "POST",
@@ -595,11 +597,12 @@ function ShareButton({ brief, idea, model }: ShareButtonProps) {
         // clipboard may be blocked; the status indicator still flips
       }
       setStatus("copied");
-    } catch {
+    } catch (e) {
+      setFailReason(e instanceof Error ? e.message : "");
       setStatus("failed");
     } finally {
       setBusy(false);
-      window.setTimeout(() => setStatus("idle"), 1800);
+      window.setTimeout(() => { setStatus("idle"); setFailReason(""); }, 1800);
     }
   }
 
@@ -611,6 +614,7 @@ function ShareButton({ brief, idea, model }: ShareButtonProps) {
       onClick={handleClick}
       disabled={busy}
       className="micro-label"
+      title={status === "failed" && failReason ? failReason : undefined}
     >
       {status === "copied" ? (
         <CheckIcon data-icon="inline-start" />
