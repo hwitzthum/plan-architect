@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const limit = await checkRateLimit(getClientKey(request), {
+  const limit = await checkRateLimit(`share:${getClientKey(request)}`, {
     limit: 30,
     windowMs: 60 * 60 * 1000,
   });
@@ -67,7 +67,14 @@ export async function POST(request: Request) {
     brief: parsed.data.brief as SharedBrief["brief"],
     createdAt: Date.now(),
   };
-  await putShare(record);
+  try {
+    await putShare(record);
+  } catch {
+    return NextResponse.json(
+      { error: "Could not save share. Try again later." },
+      { status: 503 },
+    );
+  }
 
   return NextResponse.json({ id });
 }
@@ -88,7 +95,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }
 
-  const record = await getShare(parsedId.data);
+  let record: SharedBrief | null;
+  try {
+    record = await getShare(parsedId.data);
+  } catch {
+    return NextResponse.json(
+      { error: "Could not retrieve share. Try again later." },
+      { status: 503 },
+    );
+  }
   if (!record) {
     return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }
