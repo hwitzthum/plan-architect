@@ -27,11 +27,18 @@ const requestSchema = z.object({
   clarifierAnswers: z
     .array(
       z.object({
-        question: z.string().max(500),
+        // Clarifier questions are generated server-side by the LLM and echoed
+        // back by the client. 200 chars covers any realistic question; the
+        // previous 500-char limit unnecessarily expanded the prompt-injection
+        // surface inside the <clarifications> block.
+        question: z.string().max(200),
         answer: z.string().max(2000),
       }),
     )
-    .max(20)
+    // Reduced from 20 to 10: 20 × (500 + 2000) = 50 000 chars of attacker-
+    // controlled text injected into the LLM prompt. 10 entries is still above
+    // any real clarifier flow while halving the injection surface.
+    .max(10)
     .optional(),
 });
 

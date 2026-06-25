@@ -17,7 +17,12 @@ const requestSchema = z.object({
   idea: z.string().trim().min(1).max(4000),
   model: z.string().max(200).nullable(),
   brief: projectBriefSchema.extend({
-    starterPrompt: z.string().max(40_000),
+    // Cap at 10 000 characters (was 40 000). At 4 bytes/char worst-case UTF-8
+    // a 40 000-char starterPrompt alone could be 160 KB — more than half the
+    // 256 KB total payload budget — letting an attacker store 4.8 MB/hour
+    // in Redis from a single IP within the 30-req/hour rate limit. 10 000
+    // chars (≤ 40 KB) is still well above any planner-generated output.
+    starterPrompt: z.string().max(10_000),
     mode: z.enum(["plain", "specKit"]),
   }),
 });
