@@ -15,7 +15,7 @@ const MAX_SHARE_JSON_BYTES = 256 * 1024; // 256 KB — well above any real LLM b
 
 const requestSchema = z.object({
   idea: z.string().trim().min(1).max(4000),
-  model: z.string().max(200).nullable(),
+  model: z.string().trim().max(200).nullable(),
   brief: projectBriefSchema.extend({
     // Cap at 10 000 characters (was 40 000). At 4 bytes/char worst-case UTF-8
     // a 40 000-char starterPrompt alone could be 160 KB — more than half the
