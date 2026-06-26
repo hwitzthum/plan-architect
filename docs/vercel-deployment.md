@@ -7,7 +7,7 @@ Set these in **Vercel → Project Settings → Environment Variables**:
 | Name                           | Required | Notes                                                            |
 | ------------------------------ | -------- | ---------------------------------------------------------------- |
 | `OPENROUTER_API_KEY`           | yes      | OpenRouter API key for all AI routes.                            |
-| `OPENROUTER_MODEL`             | no       | Defaults to `DEFAULT_OPENROUTER_MODEL` in `lib/ai/ai-config.ts`. |
+| `OPENROUTER_MODEL`             | no       | Defaults to `DEFAULT_OPENROUTER_MODEL` in `lib/ai/openrouter.ts`. |
 | `OPENROUTER_MAX_OUTPUT_TOKENS` | no       | Defaults to `8000`.                                              |
 
 ## Function timeouts
