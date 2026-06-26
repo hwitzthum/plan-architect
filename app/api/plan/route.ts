@@ -31,8 +31,8 @@ const requestSchema = z.object({
         // back by the client. 200 chars covers any realistic question; the
         // previous 500-char limit unnecessarily expanded the prompt-injection
         // surface inside the <clarifications> block.
-        question: z.string().max(200),
-        answer: z.string().max(2000),
+        question: z.string().trim().min(1).max(200),
+        answer: z.string().trim().max(2000),
       }),
     )
     // Reduced from 20 to 10: 20 × (500 + 2000) = 50 000 chars of attacker-
