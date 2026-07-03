@@ -180,7 +180,7 @@ There is no UI for managing multiple saved briefs in this version, but the data 
 | `POST /api/share`          | Stores a brief in Upstash Redis (30-day TTL); returns a UUID.    |
 | `GET  /api/share?id=<id>`  | Returns the stored brief for `#s=<id>` hydration.                |
 
-All endpoints share a Redis-backed rate limiter keyed by client IP (`x-vercel-forwarded-for`, falling back to `x-real-ip`). Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
+All endpoints share a Redis-backed rate limiter keyed by client IP (`x-real-ip`). Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
 
 All POST endpoints reject cross-origin requests via an `Origin` header check.
 
@@ -198,7 +198,7 @@ If you instead want a public deployment, replace Password Protection with: real 
 
 The codebase ships with the following protections:
 
-- **Security headers** in `next.config.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
+- **Security headers** in `next.config.ts` and `middleware.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
 - **Same-origin check** on every POST route.
 - **Rate limiting** per client IP, with a separate budget on `GET /api/share` to prevent enumeration.
 - **`crypto.randomUUID()` share ids** (128 bits) with a 30-day TTL.
