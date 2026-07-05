@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   const limit = await checkRateLimit(`clarify:${getClientKey(request)}`, {
-    limit: 20,
+    limit: 60,
     windowMs: 60 * 60 * 1000,
   });
 
