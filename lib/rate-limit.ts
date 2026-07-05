@@ -41,16 +41,17 @@ function redis(): Redis | null {
     const token =
       process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
     // No credentials — rate limiting is unconfigured (e.g. local dev). Return
-    // null so the limiter degrades to a no-op rather than throwing on every
-    // request. Provision an Upstash for Redis database to enable limiting.
+    // null; checkRateLimit then no-ops outside production but fails closed in
+    // production. Provision an Upstash for Redis database to enable limiting.
     if (!url || !token) {
       if (process.env.NODE_ENV === "production" && !warnedDisabled) {
         warnedDisabled = true;
         logWarn({
           route: "rate-limit",
           message:
-            "Rate limiting DISABLED in production: no Redis credentials " +
-            "(set KV_REST_API_URL/TOKEN or UPSTASH_REDIS_REST_URL/TOKEN).",
+            "No Redis credentials in production: rate-limited routes will " +
+            "fail closed (503). Set KV_REST_API_URL/TOKEN or " +
+            "UPSTASH_REDIS_REST_URL/TOKEN.",
         });
       }
       return null;
@@ -66,8 +67,20 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   const client = redis();
   if (!client) {
-    // No shared store configured — allow the request so the app stays usable
-    // instead of returning a spurious 429 on the very first call.
+    // No shared store configured.
+    if (process.env.NODE_ENV === "production") {
+      // In production this is a misconfiguration, not an expected state. Fail
+      // closed (callers return 503) so endpoints are never left silently
+      // unprotected; redis() has already logged a loud warning to surface it.
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: Date.now() + options.windowMs,
+        status: "unavailable",
+      };
+    }
+    // Outside production rate limiting is an unnecessary no-op — allow the
+    // request so local dev runs with no Redis setup and no spurious 429.
     return {
       allowed: true,
       remaining: options.limit,
