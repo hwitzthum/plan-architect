@@ -13,11 +13,21 @@ Next.js App Router · React 19 · Tailwind CSS v4 · shadcn/ui · AI SDK v6 · O
 ```bash
 OPENROUTER_API_KEY=your_openrouter_key
 OPENROUTER_MODEL=anthropic/claude-sonnet-4.6   # optional
-KV_REST_API_URL=https://...upstash.io           # required for sharing (Upstash for Redis)
-KV_REST_API_TOKEN=...                           # required for sharing (Upstash for Redis)
+# Redis — required for sharing; enables rate limiting in production.
+# Use EITHER the Vercel-KV names or Upstash's native names (both are read):
+KV_REST_API_URL=https://...upstash.io
+KV_REST_API_TOKEN=...
+# …or, when bringing your own Upstash database (copy-paste from the console):
+# UPSTASH_REDIS_REST_URL=https://...upstash.io
+# UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-`KV_REST_API_URL` and `KV_REST_API_TOKEN` are provisioned automatically when you link an **Upstash for Redis** integration in the Vercel Marketplace dashboard. For local development, pull them with `vercel env pull .env.local`.
+Provide the Redis credentials one of two ways:
+
+- **Vercel Marketplace** — link an **Upstash for Redis** integration; it auto-provisions `KV_REST_API_URL` / `KV_REST_API_TOKEN`.
+- **Your own Upstash database** (e.g. a free-tier DB in your Upstash account) — copy the `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` from the Upstash console into either name pair.
+
+For local development, pull the Vercel values with `vercel env pull .env.local`. **Redis is optional locally** — without credentials, rate limiting is disabled (a no-op) and the app runs normally; only sharing requires the store.
 
 The eval CLI reads the same key.
 

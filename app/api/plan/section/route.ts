@@ -76,6 +76,12 @@ export async function POST(request: Request) {
   });
 
   if (!limit.allowed) {
+    if (limit.status === "unavailable") {
+      return NextResponse.json(
+        { error: "Service temporarily unavailable. Try again shortly." },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: "Too many regeneration requests. Try again later." },
       { status: 429 },

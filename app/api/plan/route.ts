@@ -62,6 +62,12 @@ export async function POST(request: Request) {
   });
 
   if (!limit.allowed) {
+    if (limit.status === "unavailable") {
+      return jsonResponse(
+        { error: "Service temporarily unavailable. Try again shortly." },
+        503,
+      );
+    }
     return jsonResponse(
       { error: "Too many planning requests. Try again later." },
       429,

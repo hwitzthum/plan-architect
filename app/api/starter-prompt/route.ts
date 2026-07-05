@@ -31,6 +31,12 @@ export async function POST(request: Request) {
   });
 
   if (!limit.allowed) {
+    if (limit.status === "unavailable") {
+      return NextResponse.json(
+        { error: "Service temporarily unavailable. Try again shortly." },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: "Too many starter-prompt requests. Try again later." },
       { status: 429 },
@@ -52,10 +58,7 @@ export async function POST(request: Request) {
     "utf8",
   );
   if (briefByteLength > MAX_BRIEF_JSON_BYTES) {
-    return NextResponse.json(
-      { error: "Brief is too large." },
-      { status: 413 },
-    );
+    return NextResponse.json({ error: "Brief is too large." }, { status: 413 });
   }
 
   let apiKey: string;

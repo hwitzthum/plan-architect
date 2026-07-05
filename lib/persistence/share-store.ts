@@ -24,12 +24,15 @@ const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 let redisClient: Redis | null = null;
 function redis(): Redis {
   if (!redisClient) {
-    const url = process.env.KV_REST_API_URL;
-    const token = process.env.KV_REST_API_TOKEN;
+    const url =
+      process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+    const token =
+      process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
     if (!url || !token) {
       throw new Error(
-        "Missing Upstash Redis credentials: KV_REST_API_URL and KV_REST_API_TOKEN must be set. " +
-          "Link an Upstash for Redis integration in the Vercel dashboard, then run " +
+        "Missing Upstash Redis credentials: set KV_REST_API_URL/KV_REST_API_TOKEN " +
+          "(or UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN). Create an Upstash for " +
+          "Redis database (Vercel Marketplace or your own Upstash account), then run " +
           "`vercel env pull .env.local` for local development.",
       );
     }
