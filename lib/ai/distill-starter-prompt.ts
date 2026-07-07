@@ -24,7 +24,7 @@ export async function distillStarterPrompt(
   try {
     const { text } = await generateText({
       model: getOpenRouterModel(apiKey, modelId),
-      system: STARTER_DISTILL_SYSTEM_PROMPT,
+      instructions: STARTER_DISTILL_SYSTEM_PROMPT,
       prompt: buildStarterDistillPrompt(brief),
       abortSignal,
       maxOutputTokens: AI_MAX_OUTPUT_TOKENS,

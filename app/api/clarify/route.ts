@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   try {
     const { output } = await generateText({
       model: getAiModel(config),
-      system: CLARIFIER_SYSTEM_PROMPT,
+      instructions: CLARIFIER_SYSTEM_PROMPT,
       prompt: buildClarifierPrompt(parsed.data.idea),
       abortSignal: request.signal,
       maxOutputTokens: AI_MAX_OUTPUT_TOKENS,

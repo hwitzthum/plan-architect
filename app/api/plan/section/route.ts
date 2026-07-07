@@ -130,7 +130,7 @@ export async function POST(request: Request) {
   try {
     const { output } = await generateText({
       model: getAiModel(config),
-      system: PLANNER_SYSTEM_PROMPT,
+      instructions: PLANNER_SYSTEM_PROMPT,
       prompt: buildSectionPrompt({ brief, sectionLabel, constraint, mode }),
       abortSignal: request.signal,
       maxOutputTokens: AI_MAX_OUTPUT_TOKENS,

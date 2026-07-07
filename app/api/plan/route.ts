@@ -100,11 +100,11 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: getAiModel({ apiKey, modelId }),
-    system: PLANNER_SYSTEM_PROMPT,
+    instructions: PLANNER_SYSTEM_PROMPT,
     prompt: buildPlannerPrompt(idea, { mode, clarifierAnswers }),
     abortSignal: request.signal,
     maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
-    experimental_output: Output.object({
+    output: Output.object({
       name: "ProjectBrief",
       description: "An editable project brief shaped by the user's modes.",
       schema: projectBriefSchema,
