@@ -4,7 +4,7 @@ Turn a rough app idea into an editable project brief and an executable starter p
 
 ## Stack
 
-Next.js App Router · React 19 · Tailwind CSS v4 · shadcn/ui · AI SDK v6 · OpenRouter · React Flow · Zod
+Next.js App Router · React 19 · Tailwind CSS v4 · shadcn/ui · AI SDK v7 · OpenRouter · React Flow · Zod
 
 ## Environment
 
