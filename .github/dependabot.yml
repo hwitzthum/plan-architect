@@ -18,6 +18,13 @@ updates:
       # Re-enable once @openrouter/ai-sdk-provider ships a stable ai-7 release.
       - dependency-name: "ai"
         update-types: ["version-update:semver-major"]
+      # typescript 7 is the native (Go) compiler port; Next.js 16.2.10's
+      # build-time typecheck can't load its programmatic API and next build
+      # fails with "TypeScript is not installed". eslint-config-next's
+      # typescript-eslint also still declares peer typescript@<6.1.0.
+      # Re-enable once Next.js + the eslint stack support typescript 7.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       next-react:
         patterns:
