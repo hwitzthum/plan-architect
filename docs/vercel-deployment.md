@@ -62,7 +62,7 @@ module-level Maps. To swap in durable KV-backed equivalents:
 
 ## Notes
 
-- `next.config.ts` already sets strict security headers (CSP, HSTS,
+- `next.config.ts` and `middleware.ts` already set strict security headers (CSP, HSTS,
   X-Frame-Options) in production.
 - The `eval/` directory and `main.py` / `pyproject.toml` are dev-only
   evaluation tooling and should not be deployed. Vercel ignores them by
