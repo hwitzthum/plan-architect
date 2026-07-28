@@ -1,17 +1,29 @@
 const LOCAL_KEY = "local";
 
 export function getClientKey(request: Request): string {
-  // x-real-ip is set by Vercel's edge to the actual client IP and cannot be
-  // injected by the client — use it as the primary key on Vercel.
-  const realIp = request.headers.get("x-real-ip")?.trim();
-  if (realIp) return realIp;
+  // x-forwarded-for is the header Vercel's own docs document as spoof-proof:
+  // "Vercel overwrites this header and does not forward external IPs to
+  // prevent spoofing" (https://vercel.com/docs/headers/request-headers),
+  // unless a trusted proxy is explicitly configured (Enterprise-only, opt-in,
+  // not applicable here). Neither x-real-ip nor x-vercel-forwarded-for is a
+  // header Vercel documents as platform-managed — a prior version of this
+  // function trusted x-real-ip on that unverified assumption, which let an
+  // attacker supply an arbitrary X-Real-IP header that passed straight
+  // through untouched and got a fresh rate-limit bucket on every request,
+  // reopening the exact spoofing bypass earlier fixes here targeted.
+  //
+  // The leftmost entry is the original client; Vercel appends/overwrites
+  // trusted hops after it, so split(",")[0] is safe to take here precisely
+  // because Vercel — not the client — controls what ends up in this header.
+  const forwarded = request.headers
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    ?.trim();
+  if (forwarded) return forwarded;
 
-  // Do NOT fall back to x-forwarded-for in any environment. The leftmost
-  // entries are client-controlled and even the rightmost entry is only
-  // trustworthy when you control the proxy chain. Falling back to XFF in
-  // dev allows any caller to rotate synthetic IPs and bypass rate limits
-  // entirely. In local dev all requests share LOCAL_KEY (one bucket), which
-  // is fine since no real rate-limiting is needed without a real Redis store.
+  // No header present (e.g. local dev without a proxy in front). All requests
+  // share LOCAL_KEY (one bucket), which is fine since no real rate-limiting
+  // is needed without a real Redis store.
   return LOCAL_KEY;
 }
 
