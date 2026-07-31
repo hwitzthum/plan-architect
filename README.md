@@ -190,7 +190,7 @@ There is no UI for managing multiple saved briefs in this version, but the data 
 | `POST /api/share`          | Stores a brief in Upstash Redis (30-day TTL); returns a UUID.    |
 | `GET  /api/share?id=<id>`  | Returns the stored brief for `#s=<id>` hydration.                |
 
-All endpoints share a Redis-backed rate limiter keyed by client IP (`x-real-ip`). Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
+All endpoints share a Redis-backed rate limiter keyed by client IP (`x-forwarded-for`). Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
 
 All POST endpoints reject cross-origin requests via an `Origin` header check.
 
