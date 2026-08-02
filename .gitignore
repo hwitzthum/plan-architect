@@ -32,6 +32,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# …except the template, which holds no values and is the only record of what
+# this app needs. The negation must come after `.env*`, or the wildcard wins and
+# the file is silently untracked — the vercel CLI re-appends `.env*` on `link`,
+# so re-check this after running it.
+!.env.example
 
 # vercel
 .vercel

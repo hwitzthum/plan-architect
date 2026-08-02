@@ -31,6 +31,26 @@ For local development, pull the Vercel values with `vercel env pull .env.local`.
 
 The eval CLI reads the same key.
 
+### Connecting to the Rautaki Kommandozentrale (optional)
+
+Three more variables wire this app into the dashboard. Leave them unset and the
+integration simply does not exist: `/api/manifest` and `/api/run` answer `503`
+and do nothing, so an un-wired deployment has no open endpoint.
+
+```bash
+# The dashboard proves it is the dashboard with this; it holds the same value
+# as its own RUN_TOKEN_PLAN. Generate with: openssl rand -hex 32
+DASHBOARD_TOKEN=
+# Where finished briefs are delivered — the dashboard's production alias.
+RAUTAKI_DASHBOARD_URL=https://rautaki-kommandozentrale.vercel.app
+# This app proves a delivery came from it; the dashboard holds the same value
+# as its own APP_TOKEN_PLAN. A separate secret, so either can be rotated alone.
+RAUTAKI_RESULTS_TOKEN=
+```
+
+The two tokens run in opposite directions and must never be the same value.
+See `docs/INTEGRATION.md` in the dashboard repository for the full contract.
+
 ## Development
 
 ```bash
@@ -181,24 +201,40 @@ There is no UI for managing multiple saved briefs in this version, but the data 
 
 ## API
 
-| Endpoint                   | Purpose                                                          |
-| -------------------------- | ---------------------------------------------------------------- |
-| `POST /api/clarify`        | Returns 3–5 idea-aware clarifying questions.                     |
-| `POST /api/plan`           | Streams a project brief (NDJSON: `partial` → `status` → `done`). |
-| `POST /api/plan/section`   | Regenerates a single section of an existing brief.               |
-| `POST /api/starter-prompt` | Re-distills the starter prompt from a brief.                     |
-| `POST /api/share`          | Stores a brief in Upstash Redis (30-day TTL); returns a UUID.    |
-| `GET  /api/share?id=<id>`  | Returns the stored brief for `#s=<id>` hydration.                |
+| Endpoint                   | Purpose                                                                                             |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| `POST /api/clarify`        | Returns 3–5 idea-aware clarifying questions.                                                        |
+| `POST /api/plan`           | Streams a project brief (NDJSON: `partial` → `status` → `done`).                                    |
+| `POST /api/plan/section`   | Regenerates a single section of an existing brief.                                                  |
+| `POST /api/starter-prompt` | Re-distills the starter prompt from a brief.                                                        |
+| `POST /api/share`          | Stores a brief in Upstash Redis (30-day TTL); returns a UUID.                                       |
+| `GET  /api/share?id=<id>`  | Returns the stored brief for `#s=<id>` hydration.                                                   |
+| `GET  /api/manifest`       | What this app can be asked for, and the JSON Schema for `/api/run`. Bearer `DASHBOARD_TOKEN`.       |
+| `POST /api/run`            | One-shot brief from an `idea`, delivered to the Rautaki Kommandozentrale. Bearer `DASHBOARD_TOKEN`. |
 
-All endpoints share a Redis-backed rate limiter keyed by client IP (`x-real-ip`). Treat it as defence-in-depth, not as a security boundary; the production gate is Vercel Password Protection (see below).
+All endpoints share a Redis-backed rate limiter keyed by client IP, taken from
+`x-forwarded-for` — the one header Vercel overwrites rather than forwards, and
+therefore the only one a client cannot spoof to earn itself a fresh bucket.
+Treat it as defence-in-depth, not as a security boundary.
 
-All POST endpoints reject cross-origin requests via an `Origin` header check.
+The browser-facing POST endpoints reject cross-origin requests via an `Origin`
+header check. The two integration endpoints do not: their caller is a machine
+with no origin, and a bearer token is the stronger check in its place.
 
 ## Deployment & Security
 
 This app is designed for a **single-user deployment behind Vercel Password Protection**. The threat model assumes:
 
 1. **The deployment URL is protected** — Vercel Password Protection (Pro/Enterprise) or your equivalent SSO/proxy gate sits in front of every route, including `/api/*`. Without this gate, the AI endpoints will silently bill your OpenRouter key for anyone who finds the URL.
+
+   **Exclude `/api/manifest` and `/api/run` from that gate.** Their caller is the
+   Rautaki Kommandozentrale, which presents a bearer token and has no browser
+   session, so a password gate rejects it before the handler ever runs. That is
+   safe only because both endpoints **fail closed**: with `DASHBOARD_TOKEN`
+   unset they answer `503` and do nothing, so an un-wired deployment has no open
+   endpoint rather than an unauthenticated one. If you are not connecting this
+   app to a dashboard, leave `DASHBOARD_TOKEN` unset and gate everything.
+
 2. **The OpenRouter key never leaves the server.** It is read only from `process.env.OPENROUTER_API_KEY` inside route handlers. There is no `NEXT_PUBLIC_*` exposure.
 3. **Briefs are not multi-tenant.** Anyone past the gate can read any share-link payload.
 
@@ -209,8 +245,8 @@ If you instead want a public deployment, replace Password Protection with: real 
 The codebase ships with the following protections:
 
 - **Security headers** in `next.config.ts` and `proxy.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
-- **Same-origin check** on every POST route.
-- **Rate limiting** per client IP, with a separate budget on `GET /api/share` to prevent enumeration.
+- **Same-origin check** on every browser-facing POST route; constant-time bearer comparison on the two integration routes instead, since a machine caller sends no `Origin`.
+- **Rate limiting** per client IP on every route, with a separate budget on `GET /api/share` to prevent enumeration and a run budget matching `/api/plan`'s.
 - **`crypto.randomUUID()` share ids** (128 bits) with a 30-day TTL.
 - **Input bounds** via Zod `.max()` on every brief field; the section-regenerate route rejects briefs > 64 KB JSON.
 - **AbortSignal forwarding** to OpenRouter — when a client disconnects, the upstream call cancels.

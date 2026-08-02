@@ -25,6 +25,8 @@ import {
 import { APP_ID, runInputSchema } from "@/lib/integration/manifest";
 import { claimRun, completeRun, releaseRun } from "@/lib/integration/replay";
 import { logError, logWarn, newRequestId } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientKey } from "@/lib/request-utils";
 
 export const runtime = "nodejs";
 // Matches /api/plan's own ceiling: this waits for all of it.
@@ -43,6 +45,33 @@ export async function POST(request: Request) {
     return Response.json(
       { error: "This deployment is not connected to a dashboard." },
       { status: 503 },
+    );
+  }
+
+  /*
+   * Counted before the token is checked, like every other route here: an
+   * unauthenticated flood should be metered rather than merely rejected fast.
+   *
+   * The same ceiling as /api/plan, because each run *is* a plan — and this is
+   * the one endpoint a leaked DASHBOARD_TOKEN could spend real money through.
+   * The replay guard below only stops a repeat of the *same* clientRef; ten
+   * distinct ideas an hour is what actually bounds the bill.
+   */
+  const limit = await checkRateLimit(`run:${getClientKey(request)}`, {
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+
+  if (!limit.allowed) {
+    if (limit.status === "unavailable") {
+      return Response.json(
+        { error: "Service temporarily unavailable. Try again shortly." },
+        { status: 503 },
+      );
+    }
+    return Response.json(
+      { error: "Too many runs. Try again later." },
+      { status: 429, headers: { "retry-after": "3600" } },
     );
   }
 
