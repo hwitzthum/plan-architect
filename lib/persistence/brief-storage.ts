@@ -49,7 +49,8 @@ export function saveBrief(record: StoredBrief): void {
   }
 }
 
-export function loadBrief(id: string): StoredBrief | null {
+/** Internal: `loadLastBrief` is the way in from outside this module. */
+function loadBrief(id: string): StoredBrief | null {
   if (!isBrowser()) return null;
   const raw = localStorage.getItem(STORAGE_PREFIX + id);
   if (!raw) return null;
@@ -77,32 +78,6 @@ export function loadLastBrief(): StoredBrief | null {
   const id = localStorage.getItem(LAST_BRIEF_KEY);
   if (!id) return null;
   return loadBrief(id);
-}
-
-export function listBriefs(): StoredBrief[] {
-  if (!isBrowser()) return [];
-  const briefs: StoredBrief[] = [];
-  for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i);
-    if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
-    const raw = localStorage.getItem(key);
-    if (!raw) continue;
-    try {
-      const parsed = storedBriefSchema.safeParse(JSON.parse(raw));
-      if (parsed.success) briefs.push(parsed.data as StoredBrief);
-    } catch {
-      // ignore corrupted entry
-    }
-  }
-  return briefs.sort((a, b) => b.savedAt - a.savedAt);
-}
-
-export function deleteBrief(id: string): void {
-  if (!isBrowser()) return;
-  localStorage.removeItem(STORAGE_PREFIX + id);
-  if (localStorage.getItem(LAST_BRIEF_KEY) === id) {
-    localStorage.removeItem(LAST_BRIEF_KEY);
-  }
 }
 
 export function readShareIdFromHash(hash: string): string | null {

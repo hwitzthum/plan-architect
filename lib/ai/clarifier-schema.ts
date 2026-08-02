@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const clarifierQuestionSchema = z.object({
+const clarifierQuestionSchema = z.object({
   id: z
     .string()
     .regex(/^[a-z0-9-]+$/)

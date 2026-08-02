@@ -32,7 +32,3 @@ export const SECTION_LABELS: Record<SectionName, string> = {
   risksEdgeCases: "risks and edge cases",
   featureSpecifications: "feature specifications",
 };
-
-export function isSectionName(value: string): value is SectionName {
-  return SECTION_NAMES.includes(value as SectionName);
-}

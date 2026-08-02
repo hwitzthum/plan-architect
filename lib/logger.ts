@@ -18,10 +18,6 @@ export function newRequestId(): string {
   return crypto.randomUUID();
 }
 
-export function logInfo(fields: LogFields): void {
-  console.log(JSON.stringify({ level: "info", ...fields }));
-}
-
 export function logWarn(fields: LogFields): void {
   console.warn(JSON.stringify({ level: "warn", ...fields }));
 }

@@ -41,8 +41,6 @@ export const runInputSchema = z.object({
     ),
 });
 
-export type RunInput = z.infer<typeof runInputSchema>;
-
 export function manifest() {
   return {
     app: APP_ID,

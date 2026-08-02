@@ -53,7 +53,7 @@ export type ClaimStore = {
   drop(key: string): Promise<void>;
 };
 
-export function redisStore(): ClaimStore | null {
+function redisStore(): ClaimStore | null {
   const client = redis();
   if (!client) return null;
 
