@@ -23,6 +23,7 @@ import {
   deliveryConfigured,
 } from "@/lib/integration/deliver";
 import { APP_ID, runInputSchema } from "@/lib/integration/manifest";
+import { claimRun, completeRun, releaseRun } from "@/lib/integration/replay";
 import { logError, logWarn, newRequestId } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -60,84 +61,137 @@ export async function POST(request: Request) {
   }
 
   const { idea, mode, clientRef } = parsed.data;
+  // The caller's ref when it sent one; ours otherwise. Only the caller's makes
+  // a retry idempotent — ours is new on every request by definition, so a run
+  // without one claims a key nothing will ever ask for again.
+  const ref = clientRef ?? requestId;
 
-  let done: DoneEvent | null = null;
-  let failure: string | null = null;
+  /*
+   * Claimed before the planner is touched. A run costs minutes and money, and
+   * the retry that matters is the one arriving while the first is still in
+   * flight — see lib/integration/replay.ts.
+   */
+  const claim = await claimRun(ref);
 
-  try {
-    const inner = await plan(
-      new Request("https://internal.invalid/api/plan", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ idea, mode }),
-        signal: request.signal,
-      }),
-    );
-
-    if (!inner.ok || !inner.body) {
-      const detail = (await inner.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      return Response.json(
-        { error: detail?.error ?? "The plan architect refused the run." },
-        { status: inner.status },
-      );
-    }
-
-    for await (const event of ndjson(inner.body)) {
-      if (event.type === "done") done = event as unknown as DoneEvent;
-      // The planner reports its own failures on the stream rather than by
-      // throwing; keep the message it wrote.
-      else if (event.type === "error" && typeof event.error === "string") {
-        failure = event.error;
-      }
-      // `partial` events are the live preview for a browser. Nothing here
-      // watches a plan being written, so they are read and dropped.
-    }
-  } catch (error) {
-    logError({ route: "run", requestId, error });
-    return Response.json(
-      { error: "The run failed unexpectedly." },
-      { status: 500 },
-    );
-  }
-
-  if (failure || !done?.brief) {
-    logWarn({
-      route: "run",
-      requestId,
-      message: `run produced no brief (${failure ?? "stream ended without a done event"})`,
-    });
-    return Response.json(
-      { error: failure ?? "The run finished without producing a brief." },
-      { status: 502 },
-    );
-  }
-
-  try {
-    const delivered = await deliverPlan({
-      idea,
-      mode,
-      brief: done.brief,
-      // The caller's ref when it sent one; ours otherwise. Only the caller's
-      // makes a retry idempotent — ours is new on every request by definition.
-      clientRef: clientRef ?? requestId,
-      model: done.model ?? null,
-      signal: request.signal,
-    });
-
+  if (claim.state === "delivered") {
     return Response.json({
       ok: true,
       app: APP_ID,
       requestId,
-      ...delivered,
+      ...claim.delivery,
+      replayed: true,
     });
-  } catch (error) {
-    if (error instanceof DeliveryError) {
+  }
+
+  if (claim.state === "running") {
+    return Response.json(
+      {
+        error:
+          "Ein Lauf mit dieser clientRef ist noch unterwegs. " +
+          "Dieselbe ID erneut senden, sobald er fertig ist.",
+      },
+      { status: 409, headers: { "retry-after": "60" } },
+    );
+  }
+
+  let done: DoneEvent | null = null;
+  let failure: string | null = null;
+  /*
+   * Every path out of here that is not a delivery has to give the key back, or
+   * the retry meant to fix a failed run meets this run's own `409` for the next
+   * ten minutes. A flag and a `finally` cover them all — including the ones a
+   * later edit adds, which is the point of doing it this way rather than
+   * releasing at each `return`.
+   */
+  let delivered = false;
+
+  try {
+    try {
+      const inner = await plan(
+        new Request("https://internal.invalid/api/plan", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ idea, mode }),
+          signal: request.signal,
+        }),
+      );
+
+      if (!inner.ok || !inner.body) {
+        const detail = (await inner.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        return Response.json(
+          { error: detail?.error ?? "The plan architect refused the run." },
+          { status: inner.status },
+        );
+      }
+
+      for await (const event of ndjson(inner.body)) {
+        if (event.type === "done") done = event as unknown as DoneEvent;
+        // The planner reports its own failures on the stream rather than by
+        // throwing; keep the message it wrote.
+        else if (event.type === "error" && typeof event.error === "string") {
+          failure = event.error;
+        }
+        // `partial` events are the live preview for a browser. Nothing here
+        // watches a plan being written, so they are read and dropped.
+      }
+    } catch (error) {
       logError({ route: "run", requestId, error });
-      return Response.json({ error: error.message }, { status: error.status });
+      return Response.json(
+        { error: "The run failed unexpectedly." },
+        { status: 500 },
+      );
     }
-    throw error;
+
+    if (failure || !done?.brief) {
+      logWarn({
+        route: "run",
+        requestId,
+        message: `run produced no brief (${failure ?? "stream ended without a done event"})`,
+      });
+      return Response.json(
+        { error: failure ?? "The run finished without producing a brief." },
+        { status: 502 },
+      );
+    }
+
+    try {
+      const result = await deliverPlan({
+        idea,
+        mode,
+        brief: done.brief,
+        clientRef: ref,
+        model: done.model ?? null,
+        signal: request.signal,
+      });
+
+      // Recorded before the response, so the retry that crosses it in flight
+      // finds a delivery rather than a claim it has to wait behind.
+      await completeRun(ref, {
+        resultId: result.resultId,
+        resultUrl: result.resultUrl,
+      });
+      delivered = true;
+
+      return Response.json({
+        ok: true,
+        app: APP_ID,
+        requestId,
+        ...result,
+      });
+    } catch (error) {
+      if (error instanceof DeliveryError) {
+        logError({ route: "run", requestId, error });
+        return Response.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
+      throw error;
+    }
+  } finally {
+    if (!delivered) await releaseRun(ref);
   }
 }
 

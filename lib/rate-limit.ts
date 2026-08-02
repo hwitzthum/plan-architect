@@ -4,12 +4,10 @@
 // new key — and a new TTL — starts every window automatically. INCR is atomic;
 // PEXPIRE only fires on the first hit per window (count === 1).
 //
-// Env vars (KV_REST_API_URL, KV_REST_API_TOKEN) are auto-provisioned by the
-// Vercel Marketplace Upstash for Redis integration.
+// The client and its credential handling live in lib/redis.ts, which the run
+// replay guard shares.
 
-import { Redis } from "@upstash/redis";
-
-import { logWarn } from "@/lib/logger";
+import { redis } from "@/lib/redis";
 
 type RateLimitOptions = {
   limit: number;
@@ -28,38 +26,6 @@ type RateLimitResult = {
   // retry instead of seeing a misleading rate-limit message.
   status: "ok" | "disabled" | "unavailable";
 };
-
-let redisClient: Redis | null = null;
-let warnedDisabled = false;
-function redis(): Redis | null {
-  if (!redisClient) {
-    // Accept either the Vercel-KV names (auto-provisioned by the Marketplace
-    // integration) or Upstash's native names (when bringing your own Upstash
-    // database), so credentials work whichever way they are supplied.
-    const url =
-      process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-    const token =
-      process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-    // No credentials — rate limiting is unconfigured (e.g. local dev). Return
-    // null; checkRateLimit then no-ops outside production but fails closed in
-    // production. Provision an Upstash for Redis database to enable limiting.
-    if (!url || !token) {
-      if (process.env.NODE_ENV === "production" && !warnedDisabled) {
-        warnedDisabled = true;
-        logWarn({
-          route: "rate-limit",
-          message:
-            "No Redis credentials in production: rate-limited routes will " +
-            "fail closed (503). Set KV_REST_API_URL/TOKEN or " +
-            "UPSTASH_REDIS_REST_URL/TOKEN.",
-        });
-      }
-      return null;
-    }
-    redisClient = new Redis({ url, token });
-  }
-  return redisClient;
-}
 
 export async function checkRateLimit(
   key: string,
