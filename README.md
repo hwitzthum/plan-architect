@@ -208,7 +208,7 @@ If you instead want a public deployment, replace Password Protection with: real 
 
 The codebase ships with the following protections:
 
-- **Security headers** in `next.config.ts` and `middleware.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
+- **Security headers** in `next.config.ts` and `proxy.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
 - **Same-origin check** on every POST route.
 - **Rate limiting** per client IP, with a separate budget on `GET /api/share` to prevent enumeration.
 - **`crypto.randomUUID()` share ids** (128 bits) with a 30-day TTL.

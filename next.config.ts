@@ -4,7 +4,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 // Headers applied in every environment.
 // CSP is intentionally absent here — it is set dynamically per-request in
-// middleware.ts with a fresh nonce so that 'unsafe-inline' can be dropped
+// proxy.ts with a fresh nonce so that 'unsafe-inline' can be dropped
 // from script-src.
 // HSTS is intentionally absent here — see productionHeaders below.
 const baseHeaders = [
@@ -32,7 +32,9 @@ const productionHeaders = [
   },
 ];
 
-const securityHeaders = isDev ? baseHeaders : [...productionHeaders, ...baseHeaders];
+const securityHeaders = isDev
+  ? baseHeaders
+  : [...productionHeaders, ...baseHeaders];
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

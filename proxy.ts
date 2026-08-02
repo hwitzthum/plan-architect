@@ -1,12 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+// Next.js 16 renamed Middleware to Proxy — this file is `proxy.ts` and the
+// export is `proxy`. Only the name changed: same code, same position in front
+// of the request (node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md).
+
 // Matcher excludes static assets — they don't need a nonce and skipping them
 // avoids the per-request nonce overhead for files served from the CDN.
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Unique per-request nonce for CSP script-src. Next.js reads the x-nonce
   // request header and automatically attaches it to its own inline hydration
   // scripts, so we never need to inject <script nonce=...> manually.
