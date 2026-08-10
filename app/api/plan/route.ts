@@ -17,8 +17,9 @@ import { logError, logWarn, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
-// Two sequential LLM calls (brief stream + starter-prompt distill), each
-// allowed AI_REQUEST_TIMEOUT_MS (90s) — the function cap must exceed their sum.
+// Two sequential LLM calls (brief stream + starter-prompt distill). Neither
+// sets a per-call timeout — the only abort source is request.signal — so this
+// function cap, not any library-level deadline, is the real bound on the pair.
 export const maxDuration = 300;
 
 const requestSchema = z.object({
@@ -127,14 +128,32 @@ export async function POST(request: Request) {
           send({ type: "partial", brief: partial });
         }
 
-        const finalBrief =
-          (latestPartial as Parameters<typeof distillStarterPrompt>[0]) ?? null;
-
-        if (!finalBrief) {
+        if (!latestPartial) {
           send({ type: "error", error: "AI service returned an empty brief." });
           controller.close();
           return;
         }
+
+        // partialOutputStream yields deep partials, so the last one is a
+        // complete ProjectBrief only if the model actually finished. Hitting
+        // AI_MAX_OUTPUT_TOKENS stops it mid-object, and every consumer of the
+        // `done` brief dereferences required fields unguarded —
+        // distillStarterPrompt here, and deliver() when /api/run drives this
+        // route in-process, where the resulting TypeError is not a
+        // DeliveryError and escapes as an uncaught 500.
+        const validated = projectBriefSchema.safeParse(latestPartial);
+
+        if (!validated.success) {
+          logError({ route: "plan", requestId, error: validated.error });
+          send({
+            type: "error",
+            error: "AI service returned an incomplete brief.",
+          });
+          controller.close();
+          return;
+        }
+
+        const finalBrief = validated.data;
 
         send({ type: "status", message: "Distilling starter prompt…" });
 

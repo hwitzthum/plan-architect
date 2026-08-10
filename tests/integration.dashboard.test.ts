@@ -229,3 +229,23 @@ test("a spec-kit brief carries its specifications", () => {
   assert.match(markdown, /- FR-001 — Audio bis 10 Minuten aufnehmen/);
   assert.match(markdown, /- SC-001 — 80 % der Positionen erkannt/);
 });
+
+test("a truncated brief never reaches the delivery", () => {
+  // What partialOutputStream leaves behind when the model runs into
+  // AI_MAX_OUTPUT_TOKENS mid-object: the early keys arrived, the later ones
+  // never did. /api/plan used to cast this straight to ProjectBrief.
+  const truncated: Record<string, unknown> = { ...BRIEF };
+  delete truncated.buildPhases;
+  delete truncated.risksEdgeCases;
+
+  // The guard /api/plan now applies before it will emit `done`.
+  assert.equal(projectBriefSchema.safeParse(truncated).success, false);
+
+  // And why it has to: deliver() reads these unguarded, so without the guard
+  // the run dies on a bare TypeError. That is not a DeliveryError, so /api/run
+  // rethrows it out of the handler as an uncaught 500 instead of answering
+  // with its own error contract.
+  const unchecked = truncated as unknown as typeof BRIEF;
+  assert.throws(() => unchecked.buildPhases.length, TypeError);
+  assert.throws(() => unchecked.risksEdgeCases.length, TypeError);
+});
