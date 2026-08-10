@@ -17,12 +17,20 @@ const requestSchema = z.object({
   idea: z.string().trim().min(1).max(4000),
   model: z.string().trim().max(200).nullable(),
   brief: projectBriefSchema.extend({
-    // Cap at 10 000 characters (was 40 000). At 4 bytes/char worst-case UTF-8
-    // a 40 000-char starterPrompt alone could be 160 KB — more than half the
-    // 256 KB total payload budget — letting an attacker store 4.8 MB/hour
-    // in Redis from a single IP within the 30-req/hour rate limit. 10 000
-    // chars (≤ 40 KB) is still well above any planner-generated output.
-    starterPrompt: z.string().max(10_000),
+    // Restored to 40 000 from a 10 000 cap that rejected the app's own
+    // output. buildStarterPromptFromBrief — the deterministic fallback used
+    // whenever distillation fails — is bounded only by the brief's field
+    // caps, and a realistic spec-kit brief (12 features, 10 routes, 6 phases)
+    // renders to ~16 700 characters. Those shares failed with a flat
+    // "Invalid share payload."
+    //
+    // The earlier cap did not buy the protection its comment claimed. Abuse
+    // is bounded by MAX_SHARE_JSON_BYTES below, which is checked on the whole
+    // payload: 256 KB × 30 requests/hour is the ceiling whatever this field
+    // allows, and the brief's arrays carry no maxItems (see planner-schema),
+    // so that ceiling is reachable by padding coreFeatures alone. Lowering
+    // one field's cap moved which field an attacker pads, nothing more.
+    starterPrompt: z.string().max(40_000),
     mode: z.enum(["plain", "specKit"]),
   }),
 });

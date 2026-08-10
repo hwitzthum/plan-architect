@@ -12,8 +12,9 @@ import {
   buildPlannerPrompt,
   PLANNER_SYSTEM_PROMPT,
 } from "@/lib/ai/planner-prompt";
+import { createPlanStream } from "@/lib/ai/plan-stream";
 import { projectBriefSchema } from "@/lib/ai/planner-schema";
-import { logError, logWarn, newRequestId } from "@/lib/logger";
+import { logError, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
@@ -112,75 +113,14 @@ export async function POST(request: Request) {
     }),
   });
 
-  const encoder = new TextEncoder();
-
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      function send(payload: unknown) {
-        controller.enqueue(encoder.encode(JSON.stringify(payload) + "\n"));
-      }
-
-      try {
-        let latestPartial: Record<string, unknown> | null = null;
-
-        for await (const partial of result.partialOutputStream) {
-          latestPartial = partial as Record<string, unknown>;
-          send({ type: "partial", brief: partial });
-        }
-
-        if (!latestPartial) {
-          send({ type: "error", error: "AI service returned an empty brief." });
-          controller.close();
-          return;
-        }
-
-        // partialOutputStream yields deep partials, so the last one is a
-        // complete ProjectBrief only if the model actually finished. Hitting
-        // AI_MAX_OUTPUT_TOKENS stops it mid-object, and every consumer of the
-        // `done` brief dereferences required fields unguarded —
-        // distillStarterPrompt here, and deliver() when /api/run drives this
-        // route in-process, where the resulting TypeError is not a
-        // DeliveryError and escapes as an uncaught 500.
-        const validated = projectBriefSchema.safeParse(latestPartial);
-
-        if (!validated.success) {
-          logError({ route: "plan", requestId, error: validated.error });
-          send({
-            type: "error",
-            error: "AI service returned an incomplete brief.",
-          });
-          controller.close();
-          return;
-        }
-
-        const finalBrief = validated.data;
-
-        send({ type: "status", message: "Distilling starter prompt…" });
-
-        const { starterPrompt, source } = await distillStarterPrompt(
-          finalBrief,
-          apiKey,
-          modelId,
-          request.signal,
-        );
-
-        send({
-          type: "done",
-          brief: { ...finalBrief, mode, starterPrompt },
-          model: modelId,
-          starterPromptSource: source,
-        });
-        controller.close();
-      } catch (error) {
-        if (request.signal.aborted) {
-          logWarn({ route: "plan", requestId, message: "client aborted" });
-        } else {
-          logError({ route: "plan", requestId, error });
-        }
-        send({ type: "error", error: "AI service is currently unavailable." });
-        controller.close();
-      }
-    },
+  const stream = createPlanStream({
+    partials: result.partialOutputStream,
+    distill: (brief) =>
+      distillStarterPrompt(brief, apiKey, modelId, request.signal),
+    mode,
+    modelId,
+    requestId,
+    aborted: () => request.signal.aborted,
   });
 
   return new Response(stream, {

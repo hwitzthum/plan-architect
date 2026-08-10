@@ -39,5 +39,3 @@ export const AI_MAX_OUTPUT_TOKENS =
   Number.isFinite(_rawTokens) && _rawTokens >= 1 && _rawTokens <= 32_000
     ? _rawTokens
     : 8_000;
-
-export const AI_REQUEST_TIMEOUT_MS = 90_000;
