@@ -60,6 +60,12 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+No credentials are needed to run the test suite, type-check or build — every value in `.env.example` is read at request time, not build time:
+
+```bash
+npm test
+```
+
 ---
 
 ## A typical user journey
@@ -112,11 +118,14 @@ The planner always picks a stack appropriate to the idea. If you describe a SaaS
 
 ### The streaming brief
 
-The `/api/plan` endpoint streams NDJSON — one JSON event per line — with three event types:
+The `/api/plan` endpoint streams NDJSON — one JSON event per line — with four event types:
 
 - `partial` — a partial brief; the client renders a live preview that fills in section by section.
 - `status` — short progress messages like "Distilling starter prompt…".
 - `done` — the final brief plus the LLM-distilled starter prompt and model id.
+- `error` — the run failed and no `done` will follow. The planner reports its own failures on the stream rather than by throwing, so a request that has already started streaming still ends with a 200.
+
+A brief is only sent as `done` once it validates against the full schema. The stream yields deep partials, so a model that stops mid-object — usually on `maxOutputTokens` — leaves a brief that looks complete but is not; that case ends in `error` rather than a `done` carrying half a brief.
 
 This is why sections appear progressively in the UI rather than all at once. End-to-end time is typically ~25–45 seconds; first content shows up in 3–5 seconds.
 
@@ -190,6 +199,7 @@ Anyone opening that URL — incognito, different browser, different machine — 
 - **Persistent via Upstash Redis.** Shares survive server restarts and scale across serverless instances. The store uses a 30-day TTL — after that, old `#s=<id>` URLs return a "share is no longer available" error. `KV_REST_API_URL` and `KV_REST_API_TOKEN` must be set (see _Environment_ above); a Vercel Marketplace Upstash for Redis integration provisions them automatically.
 - **Single-user deployment assumed.** This codebase is meant to be deployed behind Vercel Password Protection (see "Deployment & Security" below). Without that, anyone with the URL can drain your OpenRouter key.
 - **Cryptographic IDs.** Share ids are `crypto.randomUUID()` (128-bit) and expire after 30 days.
+- **64 KB payload ceiling.** A share larger than that is refused with a 413. For scale, a brief with every text field at its schema maximum is about 31 KB, so this is roughly twice the largest brief the planner can produce — but it is the limit to look at first if a share ever fails.
 
 ### Local persistence
 
@@ -248,7 +258,7 @@ The codebase ships with the following protections:
 - **Same-origin check** on every browser-facing POST route; constant-time bearer comparison on the two integration routes instead, since a machine caller sends no `Origin`.
 - **Rate limiting** per client IP on every route, with a separate budget on `GET /api/share` to prevent enumeration and a run budget matching `/api/plan`'s.
 - **`crypto.randomUUID()` share ids** (128 bits) with a 30-day TTL.
-- **Input bounds** via Zod `.max()` on every brief field; the section-regenerate route rejects briefs > 64 KB JSON.
+- **Input bounds** via Zod `.max()` on every brief field, and a 64 KB JSON ceiling on every route that accepts a whole brief — `/api/plan/section`, `/api/starter-prompt` and `/api/share`. On share that ceiling is also what bounds Redis growth: one write per request against a 30/hour budget.
 - **AbortSignal forwarding** to OpenRouter — when a client disconnects, the upstream call cancels.
 - **`maxOutputTokens` cap** on every AI call (default 8000, override with `OPENROUTER_MAX_OUTPUT_TOKENS`).
 - **XML-delimited user input** in prompts to reduce stored prompt-injection.
@@ -278,6 +288,16 @@ Use it as a regression signal when tuning the distillation prompt — the absolu
 
 ```bash
 npm run dev     # local development
+npm test        # node:test suite (no network, no credentials)
 npm run lint    # eslint
 npm run build   # production build
 ```
+
+### CI
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+
+- **verify** — `lint`, `test`, `tsc --noEmit`, `build`, on Node 22 and 24. 22 is the floor `engines` declares, so CI checks that claim rather than assuming it. `tsc` is a separate step because `next build` does not fail on type errors.
+- **audit** — `npm audit --audit-level=high`, in its own job so a newly published advisory reads as an advisory rather than a broken test.
+
+Tests are plain `node:test` under `tests/`, run through `tsx`. They cover the planner's event stream, the dashboard integration boundary, delivery replay, the share payload bounds, the rate limiter's client-IP key, and the eval scoring. None require network access or credentials — the replay tests exercise the no-store path by letting the Redis connection fail — so the whole suite runs in well under a second.
