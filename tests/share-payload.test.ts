@@ -15,6 +15,23 @@ import { buildStarterPromptFromBrief } from "../lib/ai/starter-prompt";
 // If that cap is lowered, this is the test that should stop it.
 const SHARE_STARTER_PROMPT_CAP = 40_000;
 
+// Mirrors MAX_SHARE_JSON_BYTES. This is the cap that actually bounds how much
+// an attacker can write to Redis per request, so it is the one worth pinning
+// against the app's own output.
+const SHARE_PAYLOAD_CAP_BYTES = 64 * 1024;
+
+function sharePayloadBytes(brief: ReturnType<typeof projectBriefSchema.parse>) {
+  const starterPrompt = buildStarterPromptFromBrief(brief);
+  return Buffer.byteLength(
+    JSON.stringify({
+      idea: "x".repeat(200),
+      model: "anthropic/claude-sonnet-4.6",
+      brief: { ...brief, starterPrompt, mode: "specKit" },
+    }),
+    "utf8",
+  );
+}
+
 function brief(overrides: Record<string, unknown> = {}) {
   return projectBriefSchema.parse({
     appSummary: "A tool for turning voice notes into quotes.",
@@ -84,5 +101,48 @@ test("a brief with every text field at its schema maximum still fits", () => {
   assert.ok(
     prompt.length <= SHARE_STARTER_PROMPT_CAP,
     `fallback renders to ${prompt.length} chars, over the ${SHARE_STARTER_PROMPT_CAP} share cap`,
+  );
+});
+
+test("a realistic share fits the payload budget with room to spare", () => {
+  const large = brief({
+    coreFeatures: Array.from(
+      { length: 12 },
+      (_, i) => `Feature ${i + 1}: ` + "x".repeat(200),
+    ),
+    pagesRoutes: Array.from({ length: 10 }, (_, i) => ({
+      path: `/p${i}`,
+      purpose: "y".repeat(300),
+    })),
+    buildPhases: Array.from({ length: 6 }, (_, i) => ({
+      name: `Phase ${i}`,
+      goals: ["z".repeat(300), "w".repeat(300)],
+    })),
+    risksEdgeCases: Array.from({ length: 8 }, (_, i) => ({
+      title: `Risk ${i}`,
+      mitigation: "m".repeat(400),
+    })),
+  });
+
+  const bytes = sharePayloadBytes(large);
+  assert.ok(
+    bytes <= SHARE_PAYLOAD_CAP_BYTES / 2,
+    `realistic share is ${bytes} bytes, over half the ${SHARE_PAYLOAD_CAP_BYTES}-byte budget — the cap has too little headroom`,
+  );
+});
+
+test("even a schema-maximal brief fits the payload budget", () => {
+  const maximal = brief({
+    appSummary: "A".repeat(8000),
+    targetUsers: ["B".repeat(400)],
+    pagesRoutes: [{ path: "/", purpose: "E".repeat(2000) }],
+    buildPhases: [{ name: "I".repeat(400), goals: ["J".repeat(2000)] }],
+    risksEdgeCases: [{ title: "K".repeat(400), mitigation: "L".repeat(2000) }],
+  });
+
+  const bytes = sharePayloadBytes(maximal);
+  assert.ok(
+    bytes <= SHARE_PAYLOAD_CAP_BYTES,
+    `schema-maximal share is ${bytes} bytes, over the ${SHARE_PAYLOAD_CAP_BYTES}-byte budget`,
   );
 });

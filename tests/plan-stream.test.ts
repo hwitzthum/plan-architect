@@ -7,7 +7,12 @@ import test from "node:test";
 // finished being emitted as if it had. That is a property of createPlanStream,
 // so it needs no LLM — the partial stream and the distill step are injected.
 
-import { createPlanStream, type PlanStreamDeps } from "../lib/ai/plan-stream";
+import {
+  createPlanStream,
+  createWriter,
+  type PlanStreamDeps,
+  type StreamSink,
+} from "../lib/ai/plan-stream";
 
 const BRIEF = {
   appSummary: "Eine App, die Offerten aus Sprachnotizen erstellt.",
@@ -125,4 +130,70 @@ test("a failure mid-stream is reported rather than thrown", async () => {
 
   assert.equal(events.at(-1)!.type, "error");
   assert.equal(events.at(-1)!.error, "AI service is currently unavailable.");
+});
+
+// The writer, driven directly. Going through a ReadableStream cannot test this:
+// the throw rejects the promise start() returns, the stream machinery handles
+// that rejection, and the observable result is identical either way. A sink we
+// control is what makes the guard's behaviour visible.
+
+function cancelledSink(): StreamSink & { enqueued: number; closed: number } {
+  const sink = {
+    enqueued: 0,
+    closed: 0,
+    enqueue() {
+      sink.enqueued += 1;
+      throw new TypeError("Invalid state: Controller is already closed");
+    },
+    close() {
+      sink.closed += 1;
+      throw new TypeError("Invalid state: Controller is already closed");
+    },
+  };
+  return sink;
+}
+
+test("writing to a cancelled stream does not throw", () => {
+  const sink = cancelledSink();
+  const { send, close } = createWriter(sink, new TextEncoder());
+
+  // This is the call the error path makes to report an abort. Unguarded it
+  // throws here and never reaches close().
+  assert.doesNotThrow(() => send({ type: "error", error: "boom" }));
+  assert.doesNotThrow(() => close());
+});
+
+test("a cancelled stream is written to once, then left alone", () => {
+  const sink = cancelledSink();
+  const { send, close } = createWriter(sink, new TextEncoder());
+
+  send({ type: "partial" });
+  send({ type: "status" });
+  send({ type: "error" });
+  close();
+
+  // The first write discovers the reader is gone; the rest must not retry it,
+  // and close() must not add a second throwing call on top.
+  assert.equal(sink.enqueued, 1);
+  assert.equal(sink.closed, 0);
+});
+
+test("an open stream is written to and closed exactly once", () => {
+  const chunks: Uint8Array[] = [];
+  let closed = 0;
+  const { send, close } = createWriter(
+    { enqueue: (c) => chunks.push(c), close: () => { closed += 1; } },
+    new TextEncoder(),
+  );
+
+  send({ type: "partial" });
+  close();
+  close(); // idempotent — a second close must not reach the sink
+
+  assert.equal(chunks.length, 1);
+  assert.equal(closed, 1);
+  assert.equal(
+    new TextDecoder().decode(chunks[0]),
+    JSON.stringify({ type: "partial" }) + "\n",
+  );
 });

@@ -15,6 +15,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 
+import { countAmbiguitySignals } from "../lib/eval/ambiguity";
+
 if (existsSync(".env.local")) loadEnv({ path: ".env.local" });
 if (existsSync(".env")) loadEnv({ path: ".env" });
 
@@ -194,12 +196,6 @@ function scoreAgentResponse(
   const filePathMatches =
     text.match(/`[A-Za-z0-9_./-]+\.(ts|tsx|js|jsx|py|sql|md|json|css)`/g) ?? [];
   const stepMatches = text.match(/^\s*\d+\.\s/gm) ?? [];
-  const ambiguityMatches =
-    text
-      .toLowerCase()
-      .match(
-        /\b(unclear|ambiguous|unspecified|missing|tbd|(?:need|require)(?:s|ed|d)?(?: to)? clarif)/g,
-      ) ?? [];
 
   const p1Story = (brief.featureSpecifications ?? []).find(
     (feature) => feature.priority === "P1",
@@ -216,7 +212,7 @@ function scoreAgentResponse(
   return {
     filePathCount: filePathMatches.length,
     stepCount: stepMatches.length,
-    ambiguityCount: ambiguityMatches.length,
+    ambiguityCount: countAmbiguitySignals(text),
     p1OverlapRatio: Number(p1OverlapRatio.toFixed(3)),
     p1MatchedTokens,
     referencesP1,

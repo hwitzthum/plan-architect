@@ -23,6 +23,52 @@ export type PlanStreamDeps = {
  * worth pinning down — that a truncated brief never reaches `done` — belongs
  * to this function, not to the transport around it.
  */
+/** The subset of the controller the writer touches. */
+export type StreamSink = {
+  enqueue: (chunk: Uint8Array) => void;
+  close: () => void;
+};
+
+/**
+ * A writer that goes quiet once its reader is gone.
+ *
+ * A client that navigates away cancels the stream, and the controller then
+ * rejects every further enqueue/close with "Invalid state: Controller is
+ * already closed". The stream's own error path reports failures by writing to
+ * it, so unguarded, reporting an abort throws — and whatever follows the write,
+ * today `close()`, never runs.
+ *
+ * That throw is currently absorbed: it rejects the promise `start()` returns,
+ * which the stream machinery handles, so nothing reaches the process as an
+ * unhandled rejection. The guard is not there to stop a crash. It is there so
+ * that "the client left" stays an ordinary outcome rather than control flow
+ * that skips the rest of the function, which is what makes the next line added
+ * after a send() safe by default.
+ */
+export function createWriter(sink: StreamSink, encoder: TextEncoder) {
+  let writable = true;
+
+  return {
+    send(payload: unknown) {
+      if (!writable) return;
+      try {
+        sink.enqueue(encoder.encode(JSON.stringify(payload) + "\n"));
+      } catch {
+        writable = false;
+      }
+    },
+    close() {
+      if (!writable) return;
+      writable = false;
+      try {
+        sink.close();
+      } catch {
+        // Cancelled between the last send() and here.
+      }
+    },
+  };
+}
+
 export function createPlanStream(
   deps: PlanStreamDeps,
 ): ReadableStream<Uint8Array> {
@@ -31,37 +77,7 @@ export function createPlanStream(
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      // A client that navigates away cancels the stream, and the controller
-      // then rejects every further enqueue/close with "Invalid state:
-      // Controller is already closed". The catch below reports the abort by
-      // calling send(), so unguarded it throws there and skips close().
-      //
-      // Measured, that rejection is absorbed by the stream machinery: no
-      // unhandled rejection, no uncaught exception, nothing logged. So this is
-      // hardening, not a crash fix — it is here because depending on the
-      // platform to swallow an exception on the ordinary
-      // client-navigated-away path is a fragile thing to rely on, not because
-      // anything observably breaks without it.
-      let writable = true;
-
-      function send(payload: unknown) {
-        if (!writable) return;
-        try {
-          controller.enqueue(encoder.encode(JSON.stringify(payload) + "\n"));
-        } catch {
-          writable = false;
-        }
-      }
-
-      function close() {
-        if (!writable) return;
-        writable = false;
-        try {
-          controller.close();
-        } catch {
-          // Cancelled between the last send() and here.
-        }
-      }
+      const { send, close } = createWriter(controller, encoder);
 
       try {
         let latestPartial: unknown = null;

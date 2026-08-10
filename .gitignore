@@ -50,3 +50,6 @@ next-env.d.ts
 
 # eval runtime output (kept locally, not committed)
 /eval/results/
+
+# JetBrains IDE settings — machine-specific, not shared
+/.idea/
