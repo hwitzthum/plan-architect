@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A PR that gets a second push has no use for the first run's result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't cancel node 24 because node 22 failed — knowing whether a break is
+      # version-specific or universal is the whole point of running both.
+      fail-fast: false
+      matrix:
+        # The floor that package.json's `engines` promises, and the newest LTS.
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm test
+
+      # Type errors do not fail `next build`, so this is not redundant with it.
+      - run: npx tsc --noEmit
+
+      # No secrets: every credential in .env.example is read at request time,
+      # not at build time. If this ever needs one, the build has regressed.
+      - run: npm run build
+
+  audit:
+    name: audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # Separate job so a newly published advisory reads as an advisory, not as
+      # a broken test. Fails the PR by design: this is the check that would have
+      # caught GHSA-5p4m-2wfm-xmqj sitting in main.
+      - run: npm audit --audit-level=high
