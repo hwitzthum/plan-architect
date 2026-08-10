@@ -57,7 +57,3 @@ enough — see "If you instead want a public deployment" in the main
 - The `eval/` directory is dev-only evaluation tooling and should not be
   deployed. Vercel ignores it by default (no Python runtime configured), but
   verify it is not imported by any code in `app/` or `lib/`.
-- `main.py` and `pyproject.toml` are not evaluation tooling: `main.py` is the
-  unmodified PyCharm sample script and `pyproject.toml` declares no
-  dependencies. Nothing reads either one. They are leftover scaffolding, kept
-  here only so this list matches what is actually in the repository.
