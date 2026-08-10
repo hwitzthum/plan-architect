@@ -252,7 +252,7 @@ The codebase ships with the following protections:
 - **AbortSignal forwarding** to OpenRouter — when a client disconnects, the upstream call cancels.
 - **`maxOutputTokens` cap** on every AI call (default 8000, override with `OPENROUTER_MAX_OUTPUT_TOKENS`).
 - **XML-delimited user input** in prompts to reduce stored prompt-injection.
-- **Structured error logging** — client responses are generic; details are JSON-logged server-side keyed by `requestId`.
+- **Structured error logging** — browser-facing responses are generic; details are JSON-logged server-side keyed by `requestId`. The one exception is `/api/run`, which returns Zod validation issues to a caller that has already proved itself with a bearer token: it is a machine integration that needs to know which field it got wrong, and the schema shape it reveals is the one `/api/manifest` publishes on purpose.
 
 ## Eval
 
