@@ -11,7 +11,22 @@ import {
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientKey, isSameOrigin } from "@/lib/request-utils";
 
-const MAX_SHARE_JSON_BYTES = 256 * 1024; // 256 KB — well above any real LLM brief
+// 64 KB, matching the cap app/api/plan/section and app/api/starter-prompt
+// already enforce on a brief. This is the real lever on storage amplification:
+// every share is one Redis write, so the per-IP ceiling is this number times
+// the 30-requests/hour limit — 1.9 MB/hour, down from 7.7 MB/hour at 256 KB.
+//
+// It supersedes the 10 000-char starterPrompt cap that #37 introduced for the
+// same purpose. That one bounded a single field while the total budget stayed
+// at 256 KB, so it never lowered the ceiling — an attacker pads coreFeatures
+// instead, and the brief's arrays carry no maxItems. It did, however, sit
+// below what the app itself produces (a realistic brief renders a 16 700-char
+// fallback starter prompt), so it rejected honest shares while stopping none.
+//
+// Headroom check: the largest legitimate payload measured is 30.9 KB, from a
+// brief with every text field at its schema maximum. A brief over 64 KB is
+// already beyond what the two routes above will process.
+const MAX_SHARE_JSON_BYTES = 64 * 1024;
 
 const requestSchema = z.object({
   idea: z.string().trim().min(1).max(4000),
