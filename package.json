@@ -15,7 +15,7 @@
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@openrouter/ai-sdk-provider": "^3.0.0",
-    "@upstash/redis": "^1.38.0",
+    "@upstash/redis": "^1.38.2",
     "@xyflow/react": "^12.11.2",
     "ai": "^7.0.48",
     "class-variance-authority": "^0.7.1",
