@@ -19,10 +19,12 @@
 - Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation
 - After completing features (large or small), always run commands like lint, type check and next build to check code quality
 
-## DATABASE SCHEMA CHANGES
+## PERSISTENCE
 
-- Whenever you make changes to the database schema, ALWAYS run the drizzle generate and migrate commands
-- NEVER run drizzle push!
+- This project has no SQL database and no ORM. There is no Drizzle, no schema to generate, and no migrations to run — do not look for them.
+- Durable server state is Upstash Redis (`lib/redis.ts`): share payloads in `lib/persistence/share-store.ts`, rate-limit counters in `lib/rate-limit.ts`.
+- Browser-local state is `localStorage` in `lib/persistence/brief-storage.ts`.
+- A stored shape is defined by its Zod schema, so changing one means changing that schema and considering payloads already written under the old shape. Redis entries carry a TTL and expire on their own; `localStorage` entries do not.
 
 ## TESTING
 

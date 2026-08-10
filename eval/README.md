@@ -43,7 +43,7 @@ Reports land in `eval/results/<timestamp>.json`.
 
 - `filePathCount` — how many concrete code paths the agent listed (looks for backtick-wrapped paths ending in `.ts/.tsx/.js/.jsx/.py/.sql/.md/.json/.css`).
 - `stepCount` — how many numbered steps the agent emitted.
-- `ambiguityCount` — how many times the agent flagged something as `unclear`, `ambiguous`, `unspecified`, `missing`, `TBD`, or said it needed clarification. **Higher is worse** — it means the prompt left too much undefined.
+- `ambiguityCount` — how many times the agent flagged something as `unclear`, `ambiguous`, `unspecified`, `missing`, `undefined`, `TBD`, or said it needed/required clarification. **Higher is worse** — it means the prompt left too much undefined. Note that `undefined` is matched as a bare word, so an agent writing prose about a TypeScript `undefined` inflates this count; read a small non-zero value with that in mind.
 - `p1OverlapRatio` — fraction (0.0–1.0) of distinctive tokens from the P1 user story that appear in the agent response. Stopwords and very short words are dropped. Higher means the agent's plan is genuinely addressing the P1 slice rather than wandering.
 - `p1MatchedTokens` — the actual words that overlapped. Useful for debugging false negatives.
 - `referencesP1` — convenience boolean, true when `p1OverlapRatio >= 0.25`.

@@ -136,10 +136,21 @@ export async function POST(request: Request) {
 
   try {
     try {
+      // Carry the caller's IP across the in-process hop. Without it the
+      // synthetic Request has no x-forwarded-for, getClientKey falls back to
+      // its LOCAL_KEY constant, and every dashboard run — whatever its
+      // origin — shares a single global rl:plan bucket of 10/hour, which
+      // drains and then answers with the planner's "Too many planning
+      // requests" for callers who have made none.
+      const forwardedFor = request.headers.get("x-forwarded-for");
+
       const inner = await plan(
         new Request("https://internal.invalid/api/plan", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            ...(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
+          },
           body: JSON.stringify({ idea, mode }),
           signal: request.signal,
         }),
