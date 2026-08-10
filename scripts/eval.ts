@@ -198,7 +198,7 @@ function scoreAgentResponse(
     text
       .toLowerCase()
       .match(
-        /\b(unclear|ambiguous|unspecified|missing|undefined|tbd|need(?: to)? clarif)/g,
+        /\b(unclear|ambiguous|unspecified|missing|undefined|tbd|(?:need|require)(?:s|ed|d)?(?: to)? clarif)/g,
       ) ?? [];
 
   const p1Story = (brief.featureSpecifications ?? []).find(
