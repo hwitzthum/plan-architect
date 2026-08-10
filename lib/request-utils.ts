@@ -1,20 +1,28 @@
 const LOCAL_KEY = "local";
 
 export function getClientKey(request: Request): string {
-  // x-forwarded-for is the header Vercel's own docs document as spoof-proof:
-  // "Vercel overwrites this header and does not forward external IPs to
-  // prevent spoofing" (https://vercel.com/docs/headers/request-headers),
-  // unless a trusted proxy is explicitly configured (Enterprise-only, opt-in,
-  // not applicable here). Neither x-real-ip nor x-vercel-forwarded-for is a
-  // header Vercel documents as platform-managed — a prior version of this
-  // function trusted x-real-ip on that unverified assumption, which let an
-  // attacker supply an arbitrary X-Real-IP header that passed straight
-  // through untouched and got a fresh rate-limit bucket on every request,
-  // reopening the exact spoofing bypass earlier fixes here targeted.
+  // Keyed on x-forwarded-for, and deliberately only that.
   //
-  // The leftmost entry is the original client; Vercel appends/overwrites
-  // trusted hops after it, so split(",")[0] is safe to take here precisely
-  // because Vercel — not the client — controls what ends up in this header.
+  // Vercel documents this header as one it controls: "Vercel overwrites this
+  // header and does not forward external IPs to prevent spoofing, unless a
+  // trusted proxy is enabled for Enterprise customers"
+  // (https://vercel.com/docs/headers/request-headers). That written guarantee
+  // is the whole basis for trusting it, and for taking split(",")[0] — Vercel,
+  // not the caller, decides what ends up in the value.
+  //
+  // Do not move this to x-real-ip, including by way of @vercel/functions'
+  // ipAddress(), which reads exactly that header (IP_HEADER_NAME =
+  // "x-real-ip", v3.9.1). Vercel's request-header documentation does not list
+  // x-real-ip at all, so nothing published promises it is overwritten. An
+  // earlier version of this function trusted it, which let a caller hand
+  // itself a fresh rate-limit bucket on every request by sending the header.
+  // "Just use the official helper" is the most plausible route back into that
+  // bug, so it is named here rather than left to be rediscovered.
+  //
+  // This choice has been reversed four times, each time by an audit calling
+  // the previous one insecure. tests/client-key.test.ts pins the property that
+  // actually matters — no client-supplied header earns its own bucket — so a
+  // fifth change has to be deliberate rather than plausible-looking.
   const forwarded = request.headers
     .get("x-forwarded-for")
     ?.split(",")[0]
