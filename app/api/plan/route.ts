@@ -16,7 +16,7 @@ import { createPlanStream } from "@/lib/ai/plan-stream";
 import { projectBriefSchema } from "@/lib/ai/planner-schema";
 import { logError, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getClientKey, isSameOrigin } from "@/lib/request-utils";
+import { getClientKey, isSameOrigin, readJsonBody } from "@/lib/request-utils";
 
 // Two sequential LLM calls (brief stream + starter-prompt distill). Neither
 // sets a per-call timeout — the only abort source is request.signal — so this
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json().catch(() => null);
+  const body = await readJsonBody(request);
   const parsed = requestSchema.safeParse(body);
 
   if (!parsed.success) {

@@ -1,5 +1,65 @@
 const LOCAL_KEY = "local";
 
+// The largest payload any POST route accepts post-parse is the 64 KB brief
+// cap (share, plan/section, starter-prompt — see MAX_SHARE_JSON_BYTES /
+// MAX_BRIEF_JSON_BYTES in those routes, pinned against real output by
+// tests/share-payload.test.ts). 128 KB gives that headroom without raising
+// the real ceiling: an oversized body is now rejected while it is still
+// streaming in, instead of after `JSON.parse` and a full zod walk have
+// already paid for it. request.json() has no size argument, so this reads
+// the stream by hand rather than trusting the platform's own limit, which
+// only Vercel's deployment provides.
+const MAX_JSON_BODY_BYTES = 128 * 1024;
+
+// Drop-in replacement for `request.json().catch(() => null)` that stops
+// reading — and never calls JSON.parse — once the body exceeds maxBytes.
+// Content-Length is checked first as a fast, if spoofable, reject; the byte
+// counter on the stream itself is what actually enforces the limit.
+export async function readJsonBody(
+  request: Request,
+  maxBytes: number = MAX_JSON_BODY_BYTES,
+): Promise<unknown | null> {
+  const contentLength = request.headers.get("content-length");
+  if (contentLength !== null) {
+    const declared = Number(contentLength);
+    if (Number.isFinite(declared) && declared > maxBytes) return null;
+  }
+
+  if (!request.body) {
+    return request.json().catch(() => null);
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return null;
+  }
+
+  try {
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
 export function getClientKey(request: Request): string {
   // Keyed on x-forwarded-for, and deliberately only that.
   //

@@ -9,7 +9,7 @@ import {
   type SharedBrief,
 } from "@/lib/persistence/share-store";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getClientKey, isSameOrigin } from "@/lib/request-utils";
+import { getClientKey, isSameOrigin, readJsonBody } from "@/lib/request-utils";
 
 // 64 KB, matching the cap app/api/plan/section and app/api/starter-prompt
 // already enforce on a brief. This is the real lever on storage amplification:
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json().catch(() => null);
+  const body = await readJsonBody(request);
   const parsed = requestSchema.safeParse(body);
 
   if (!parsed.success) {
