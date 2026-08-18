@@ -26,7 +26,7 @@ import { APP_ID, runInputSchema } from "@/lib/integration/manifest";
 import { claimRun, completeRun, releaseRun } from "@/lib/integration/replay";
 import { logError, logWarn, newRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getClientKey } from "@/lib/request-utils";
+import { getClientKey, readJsonBody } from "@/lib/request-utils";
 
 export const runtime = "nodejs";
 // Matches /api/plan's own ceiling: this waits for all of it.
@@ -79,9 +79,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsed = runInputSchema.safeParse(
-    await request.json().catch(() => null),
-  );
+  const parsed = runInputSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) {
     return Response.json(
       { error: "Invalid input", issues: z.treeifyError(parsed.error) },
