@@ -7,7 +7,11 @@ import test from "node:test";
 // tests are about the boundary and the delivery's shape — not about planning,
 // which is /api/plan's business.
 
-import { authenticated, configured } from "../lib/integration/auth";
+import {
+  authenticated,
+  configured,
+  secretsConflict,
+} from "../lib/integration/auth";
 import { briefToMarkdown } from "../lib/integration/brief-markdown";
 import { manifest, runInputSchema } from "../lib/integration/manifest";
 import { projectBriefSchema } from "../lib/ai/planner-schema";
@@ -117,6 +121,36 @@ test("no token configured means no caller is ever authenticated", async () => {
   await withEnv({ DASHBOARD_TOKEN: undefined }, async () => {
     assert.equal(await authenticated(request(TOKEN)), false);
   });
+});
+
+test("identical DASHBOARD_TOKEN and RAUTAKI_RESULTS_TOKEN is flagged as a conflict", async () => {
+  await withEnv(
+    { DASHBOARD_TOKEN: TOKEN, RAUTAKI_RESULTS_TOKEN: TOKEN },
+    () => {
+      assert.equal(secretsConflict(), true);
+    },
+  );
+});
+
+test("distinct or partially-set integration secrets are not a conflict", async () => {
+  await withEnv(
+    { DASHBOARD_TOKEN: TOKEN, RAUTAKI_RESULTS_TOKEN: `${TOKEN}-other` },
+    () => {
+      assert.equal(secretsConflict(), false);
+    },
+  );
+  await withEnv(
+    { DASHBOARD_TOKEN: TOKEN, RAUTAKI_RESULTS_TOKEN: undefined },
+    () => {
+      assert.equal(secretsConflict(), false);
+    },
+  );
+  await withEnv(
+    { DASHBOARD_TOKEN: undefined, RAUTAKI_RESULTS_TOKEN: undefined },
+    () => {
+      assert.equal(secretsConflict(), false);
+    },
+  );
 });
 
 test("the manifest describes the capability and derives its input schema", () => {
