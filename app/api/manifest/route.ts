@@ -3,7 +3,11 @@
 // Authenticates itself with DASHBOARD_TOKEN and refuses outright when the
 // integration is not configured, so an un-wired deployment has no open endpoint.
 
-import { authenticated, configured } from "@/lib/integration/auth";
+import {
+  authenticated,
+  configured,
+  secretsConflict,
+} from "@/lib/integration/auth";
 import { manifest } from "@/lib/integration/manifest";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientKey } from "@/lib/request-utils";
@@ -11,7 +15,7 @@ import { getClientKey } from "@/lib/request-utils";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  if (!configured()) {
+  if (!configured() || secretsConflict()) {
     return Response.json(
       { error: "This deployment is not connected to a dashboard." },
       { status: 503 },

@@ -16,7 +16,11 @@ import { z } from "zod";
 
 import { POST as plan } from "@/app/api/plan/route";
 import type { ProjectBrief } from "@/lib/ai/planner-schema";
-import { authenticated, configured } from "@/lib/integration/auth";
+import {
+  authenticated,
+  configured,
+  secretsConflict,
+} from "@/lib/integration/auth";
 import {
   deliverPlan,
   DeliveryError,
@@ -41,7 +45,7 @@ type DoneEvent = {
 export async function POST(request: Request) {
   const requestId = newRequestId();
 
-  if (!configured() || !deliveryConfigured()) {
+  if (!configured() || !deliveryConfigured() || secretsConflict()) {
     return Response.json(
       { error: "This deployment is not connected to a dashboard." },
       { status: 503 },
