@@ -2,7 +2,7 @@ import { Output, streamText } from "ai";
 import { z } from "zod";
 
 import {
-  AI_MAX_OUTPUT_TOKENS,
+  getAiMaxOutputTokens,
   AiConfigError,
   getAiConfig,
   getAiModel,
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     instructions: PLANNER_SYSTEM_PROMPT,
     prompt: buildPlannerPrompt(idea, { mode, clarifierAnswers }),
     abortSignal: request.signal,
-    maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+    maxOutputTokens: getAiMaxOutputTokens(),
     output: Output.object({
       name: "ProjectBrief",
       description: "An editable project brief shaped by the user's modes.",

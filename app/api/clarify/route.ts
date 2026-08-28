@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
-  AI_MAX_OUTPUT_TOKENS,
+  getAiMaxOutputTokens,
   AiConfigError,
   getAiConfig,
   getAiModel,
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       instructions: CLARIFIER_SYSTEM_PROMPT,
       prompt: buildClarifierPrompt(parsed.data.idea),
       abortSignal: request.signal,
-      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: getAiMaxOutputTokens(),
       output: Output.object({
         name: "ClarifierQuestions",
         description: "Three to five idea-aware clarifying questions.",

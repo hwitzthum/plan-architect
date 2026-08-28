@@ -31,11 +31,17 @@ export function getAiModel(config: AiConfig = getAiConfig()) {
 // Clamp to [1, 32000] so a misconfigured or very large env value cannot
 // trigger runaway API cost. parseInt returns NaN for non-numeric strings;
 // the fallback keeps NaN and values outside the window at 8 000.
-const _rawTokens = Number.parseInt(
-  process.env.OPENROUTER_MAX_OUTPUT_TOKENS ?? "8000",
-  10,
-);
-export const AI_MAX_OUTPUT_TOKENS =
-  Number.isFinite(_rawTokens) && _rawTokens >= 1 && _rawTokens <= 32_000
-    ? _rawTokens
+//
+// Read inside a function, not into a module-level constant: every other env
+// var in this app is read at request time (see README), so a var changed
+// in the environment takes effect on the next request rather than only
+// after the next cold start.
+export function getAiMaxOutputTokens(): number {
+  const rawTokens = Number.parseInt(
+    process.env.OPENROUTER_MAX_OUTPUT_TOKENS ?? "8000",
+    10,
+  );
+  return Number.isFinite(rawTokens) && rawTokens >= 1 && rawTokens <= 32_000
+    ? rawTokens
     : 8_000;
+}
