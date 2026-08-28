@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 
-import { AI_MAX_OUTPUT_TOKENS } from "@/lib/ai/ai-config";
+import { getAiMaxOutputTokens } from "@/lib/ai/ai-config";
 import { getOpenRouterModel } from "@/lib/ai/openrouter";
 import type { ProjectBrief } from "@/lib/ai/planner-schema";
 import {
@@ -27,7 +27,7 @@ export async function distillStarterPrompt(
       instructions: STARTER_DISTILL_SYSTEM_PROMPT,
       prompt: buildStarterDistillPrompt(brief),
       abortSignal,
-      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: getAiMaxOutputTokens(),
     });
 
     if (!text || text.trim().length < 200) {

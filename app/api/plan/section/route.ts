@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
-  AI_MAX_OUTPUT_TOKENS,
+  getAiMaxOutputTokens,
   AiConfigError,
   getAiConfig,
   getAiModel,
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       instructions: PLANNER_SYSTEM_PROMPT,
       prompt: buildSectionPrompt({ brief, sectionLabel, constraint, mode }),
       abortSignal: request.signal,
-      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: getAiMaxOutputTokens(),
       output: Output.object({
         name: `Section_${section}`,
         description: `New value for the ${sectionLabel} section.`,
