@@ -1,6 +1,6 @@
 // The shared Upstash Redis client.
 //
-// Two features need it now — the rate limiter and the run replay guard — so the
+// Two features need it — the rate limiter and the share store — so the
 // credential handling lives here rather than being written twice and drifting.
 //
 // Env vars: either the Vercel-KV names (auto-provisioned by the Marketplace
@@ -22,8 +22,7 @@ export function redis(): Redis | null {
       process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
 
     // No credentials — no shared store (e.g. local dev). Callers decide what
-    // that means for them: the rate limiter fails closed in production, the
-    // replay guard fails open, and both say so where they do it.
+    // that means for them, and say so where they do it.
     if (!url || !token) {
       if (process.env.NODE_ENV === "production" && !warnedDisabled) {
         warnedDisabled = true;
@@ -31,7 +30,7 @@ export function redis(): Redis | null {
           route: "redis",
           message:
             "No Redis credentials in production: rate-limited routes will " +
-            "fail closed (503) and repeated runs will not be deduplicated. " +
+            "fail closed (503). " +
             "Set KV_REST_API_URL/TOKEN or UPSTASH_REDIS_REST_URL/TOKEN.",
         });
       }

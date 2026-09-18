@@ -4,8 +4,8 @@
 // new key — and a new TTL — starts every window automatically. INCR is atomic;
 // PEXPIRE only fires on the first hit per window (count === 1).
 //
-// The client and its credential handling live in lib/redis.ts, which the run
-// replay guard shares.
+// The client and its credential handling live in lib/redis.ts, which the
+// share store also uses.
 
 import { redis } from "@/lib/redis";
 

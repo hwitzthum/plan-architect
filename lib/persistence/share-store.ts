@@ -24,8 +24,8 @@ const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
  * The shared client, plus this feature's own answer to it being absent.
  *
  * Sharing a brief has no degraded mode — there is nowhere to put the record —
- * so unlike the rate limiter and the replay guard, which each decide for
- * themselves what a missing store means, this throws and says how to fix it.
+ * so unlike the rate limiter, which decides for itself what a missing store
+ * means, this throws and says how to fix it.
  * Resolving the credentials is `lib/redis.ts`'s job; what to do without them
  * belongs here.
  */
