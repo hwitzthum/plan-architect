@@ -31,26 +31,6 @@ For local development, pull the Vercel values with `vercel env pull .env.local`.
 
 The eval CLI reads the same key.
 
-### Connecting to the Rautaki Kommandozentrale (optional)
-
-Three more variables wire this app into the dashboard. Leave them unset and the
-integration simply does not exist: `/api/manifest` and `/api/run` answer `503`
-and do nothing, so an un-wired deployment has no open endpoint.
-
-```bash
-# The dashboard proves it is the dashboard with this; it holds the same value
-# as its own RUN_TOKEN_PLAN. Generate with: openssl rand -hex 32
-DASHBOARD_TOKEN=
-# Where finished briefs are delivered — the dashboard's production alias.
-RAUTAKI_DASHBOARD_URL=https://rautaki-kommandozentrale.vercel.app
-# This app proves a delivery came from it; the dashboard holds the same value
-# as its own APP_TOKEN_PLAN. A separate secret, so either can be rotated alone.
-RAUTAKI_RESULTS_TOKEN=
-```
-
-The two tokens run in opposite directions and must never be the same value.
-See `docs/INTEGRATION.md` in the dashboard repository for the full contract.
-
 ## Development
 
 ```bash
@@ -219,31 +199,19 @@ There is no UI for managing multiple saved briefs in this version, but the data 
 | `POST /api/starter-prompt` | Re-distills the starter prompt from a brief.                                                        |
 | `POST /api/share`          | Stores a brief in Upstash Redis (30-day TTL); returns a UUID.                                       |
 | `GET  /api/share?id=<id>`  | Returns the stored brief for `#s=<id>` hydration.                                                   |
-| `GET  /api/manifest`       | What this app can be asked for, and the JSON Schema for `/api/run`. Bearer `DASHBOARD_TOKEN`.       |
-| `POST /api/run`            | One-shot brief from an `idea`, delivered to the Rautaki Kommandozentrale. Bearer `DASHBOARD_TOKEN`. |
 
 All endpoints share a Redis-backed rate limiter keyed by client IP, taken from
 `x-forwarded-for` — the one header Vercel overwrites rather than forwards, and
 therefore the only one a client cannot spoof to earn itself a fresh bucket.
 Treat it as defence-in-depth, not as a security boundary.
 
-The browser-facing POST endpoints reject cross-origin requests via an `Origin`
-header check. The two integration endpoints do not: their caller is a machine
-with no origin, and a bearer token is the stronger check in its place.
+The POST endpoints reject cross-origin requests via an `Origin` header check.
 
 ## Deployment & Security
 
 This app is designed for a **single-user deployment behind Vercel Password Protection**. The threat model assumes:
 
 1. **The deployment URL is protected** — Vercel Password Protection (Pro/Enterprise) or your equivalent SSO/proxy gate sits in front of every route, including `/api/*`. Without this gate, the AI endpoints will silently bill your OpenRouter key for anyone who finds the URL.
-
-   **Exclude `/api/manifest` and `/api/run` from that gate.** Their caller is the
-   Rautaki Kommandozentrale, which presents a bearer token and has no browser
-   session, so a password gate rejects it before the handler ever runs. That is
-   safe only because both endpoints **fail closed**: with `DASHBOARD_TOKEN`
-   unset they answer `503` and do nothing, so an un-wired deployment has no open
-   endpoint rather than an unauthenticated one. If you are not connecting this
-   app to a dashboard, leave `DASHBOARD_TOKEN` unset and gate everything.
 
 2. **The OpenRouter key never leaves the server.** It is read only from `process.env.OPENROUTER_API_KEY` inside route handlers. There is no `NEXT_PUBLIC_*` exposure.
 3. **Briefs are not multi-tenant.** Anyone past the gate can read any share-link payload.
@@ -255,14 +223,14 @@ If you instead want a public deployment, replace Password Protection with: real 
 The codebase ships with the following protections:
 
 - **Security headers** in `next.config.ts` and `proxy.ts`: CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
-- **Same-origin check** on every browser-facing POST route; constant-time bearer comparison on the two integration routes instead, since a machine caller sends no `Origin`.
-- **Rate limiting** per client IP on every route, with a separate budget on `GET /api/share` to prevent enumeration and a run budget matching `/api/plan`'s.
+- **Same-origin check** on every POST route.
+- **Rate limiting** per client IP on every route, with a separate budget on `GET /api/share` to prevent enumeration.
 - **`crypto.randomUUID()` share ids** (128 bits) with a 30-day TTL.
 - **Input bounds** via Zod `.max()` on every brief field, and a 64 KB JSON ceiling on every route that accepts a whole brief — `/api/plan/section`, `/api/starter-prompt` and `/api/share`. On share that ceiling is also what bounds Redis growth: one write per request against a 30/hour budget.
 - **AbortSignal forwarding** to OpenRouter — when a client disconnects, the upstream call cancels.
 - **`maxOutputTokens` cap** on every AI call (default 8000, override with `OPENROUTER_MAX_OUTPUT_TOKENS`).
 - **XML-delimited user input** in prompts to reduce stored prompt-injection.
-- **Structured error logging** — browser-facing responses are generic; details are JSON-logged server-side keyed by `requestId`. The one exception is `/api/run`, which returns Zod validation issues to a caller that has already proved itself with a bearer token: it is a machine integration that needs to know which field it got wrong, and the schema shape it reveals is the one `/api/manifest` publishes on purpose.
+- **Structured error logging** — responses are generic; details are JSON-logged server-side keyed by `requestId`.
 
 ## Eval
 
@@ -300,4 +268,4 @@ npm run build   # production build
 - **verify** — `lint`, `test`, `tsc --noEmit`, `build`, on Node 22 and 24. 22 is the floor `engines` declares, so CI checks that claim rather than assuming it. `tsc` is a separate step because `next build` does not fail on type errors.
 - **audit** — `npm audit --audit-level=high`, in its own job so a newly published advisory reads as an advisory rather than a broken test.
 
-Tests are plain `node:test` under `tests/`, run through `tsx`. They cover the planner's event stream, the dashboard integration boundary, delivery replay, the share payload bounds, the rate limiter's client-IP key, and the eval scoring. None require network access or credentials — the replay tests exercise the no-store path by letting the Redis connection fail — so the whole suite runs in well under a second.
+Tests are plain `node:test` under `tests/`, run through `tsx`. They cover the planner's event stream, the share payload bounds, the rate limiter's client-IP key, and the eval scoring. None require network access or credentials, so the whole suite runs in well under a second.

@@ -96,10 +96,7 @@ export function createPlanStream(
         // The stream yields deep partials, so the last one is a complete
         // ProjectBrief only if the model actually finished. Hitting
         // AI_MAX_OUTPUT_TOKENS stops it mid-object, and every consumer of the
-        // `done` brief dereferences required fields unguarded — distill here,
-        // and deliver() when /api/run drives this route in-process, where the
-        // resulting TypeError is not a DeliveryError and escapes as an
-        // uncaught 500.
+        // `done` brief dereferences required fields unguarded — distill here.
         const validated = projectBriefSchema.safeParse(latestPartial);
 
         if (!validated.success) {
