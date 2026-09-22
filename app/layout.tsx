@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const dmSans = DM_Sans({
+const dmSans = localFont({
+  src: "./fonts/dm-sans-latin.woff2",
   variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: "300 500",
+  style: "normal",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
