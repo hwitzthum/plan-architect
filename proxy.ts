@@ -15,13 +15,16 @@ export function proxy(request: NextRequest) {
   // request header and automatically attaches it to its own inline hydration
   // scripts, so we never need to inject <script nonce=...> manually.
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const isDev = process.env.NODE_ENV === "development";
 
   const csp = [
     "default-src 'self'",
     // 'strict-dynamic' propagates trust to scripts loaded by the trusted
     // inline bootstrap; 'nonce-...' is the only way to authorise that
     // bootstrap without unsafe-inline.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    // React needs eval() for hot reloading in development; production stays
+    // strict. Never widen this beyond the dev branch.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
@@ -36,8 +39,9 @@ export function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
-  // Also propagate the CSP value as a request header so server components
-  // can read it via headers() if they ever need to embed the policy value.
+  // Load-bearing: Next.js extracts the nonce from the request's CSP header
+  // (the 'nonce-{value}' pattern) and applies it to its own script tags.
+  // Without this header the nonce never reaches the rendered HTML.
   requestHeaders.set("content-security-policy", csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
