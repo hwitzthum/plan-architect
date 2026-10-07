@@ -17,7 +17,7 @@
     "@openrouter/ai-sdk-provider": "^3.1.0",
     "@upstash/redis": "^1.38.4",
     "@xyflow/react": "^12.11.6",
-    "ai": "^7.0.118",
+    "ai": "^7.0.127",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.48.0",
