@@ -60,5 +60,8 @@ jobs:
 
       # Separate job so a newly published advisory reads as an advisory, not as
       # a broken test. Fails the PR by design: this is the check that would have
-      # caught GHSA-5p4m-2wfm-xmqj sitting in main.
-      - run: npm audit --audit-level=high
+      # caught GHSA-5p4m-2wfm-xmqj sitting in main. Same bar as
+      # `npm audit --audit-level=high`, plus explicit acceptances for advisories
+      # with no fix (scripts/audit.ts) — otherwise one unfixable advisory keeps
+      # every PR red.
+      - run: npx tsx scripts/audit.ts
