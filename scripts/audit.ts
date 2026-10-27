@@ -12,14 +12,7 @@ import { spawnSync } from "node:child_process";
 
 import { evaluateAudit, type AuditReport } from "../lib/audit/gate";
 
-const ACCEPTANCES: Record<string, string> = {
-  // Added 2026-10-12. braces <=3.0.3 has no patched release (3.0.3 is the
-  // latest, from 2024). It is reached only through dev tooling —
-  // eslint-config-next and the shadcn CLI, via fast-glob → micromatch — and
-  // only with glob patterns from this repo, never user input.
-  "GHSA-vfj7-8cjw-p6xm":
-    "braces stack-exhaustion DoS; no fix exists, dev tooling only",
-};
+const ACCEPTANCES: Record<string, string> = {};
 
 function audit(...args: string[]): AuditReport {
   // npm audit exits non-zero whenever it finds anything, so the exit code says
