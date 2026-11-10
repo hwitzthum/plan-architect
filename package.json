@@ -35,8 +35,8 @@
     "@types/react-dom": "^19",
     "dotenv": "^18.0.9",
     "eslint": "^9",
-    "eslint-config-next": "16.4.3",
-    "shadcn": "^4.21.0",
+    "eslint-config-next": "16.4.5",
+    "shadcn": "^4.23.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^6"
