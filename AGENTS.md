@@ -1,4 +1,4 @@
-# CRITICAL RULES - MUST FOLLOW
+# Project rules
 
 ## RESPONSES
 
@@ -13,7 +13,7 @@
 
 ## CHANGE / EDIT MODE
 
-- Never implement features yourself when possible - use sub-agents!
+- Use sub-agents for parallel or context-heavy work; implement small changes directly.
 - Identify changes from the plan that can be implemented in parallel, and use sub-agents to implement the features efficiently
 - When using sub-agents to implement features, act as a coordinator only
 - Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation
@@ -29,7 +29,7 @@
 ## TESTING
 
 - Use any testing tools, libraries available to the project for testing your changes
-- Never assume your changes simply work, always test!
+- Test every change; do not assume it works.
 - If the project does not have any testing tools, scripts, MCP tools, skills, etc. available for testing, ask the user whether testing should be skipped.
 
 ## UI DESIGN
