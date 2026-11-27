@@ -266,6 +266,6 @@ npm run build   # production build
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
 
 - **verify** — `lint`, `test`, `tsc --noEmit`, `build`, on Node 22 and 24. 22 is the floor `engines` declares, so CI checks that claim rather than assuming it. `tsc` is a separate step because `next build` does not fail on type errors.
-- **audit** — `npm audit --audit-level=high`, in its own job so a newly published advisory reads as an advisory rather than a broken test.
+- **audit** — `npx tsx scripts/audit.ts`, in its own job so a newly published advisory reads as an advisory rather than a broken test.
 
 Tests are plain `node:test` under `tests/`, run through `tsx`. They cover the planner's event stream, the share payload bounds, the rate limiter's client-IP key, and the eval scoring. None require network access or credentials, so the whole suite runs in well under a second.
